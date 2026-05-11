@@ -175,15 +175,11 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> RpiRfSwitchOptionsFlow:
         """Get the options flow handler."""
-        return RpiRfSwitchOptionsFlow(config_entry)
+        return RpiRfSwitchOptionsFlow()
 
 
 class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
     """Handle options flow for editing an existing RF switch."""
-
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
