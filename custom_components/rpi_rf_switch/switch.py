@@ -5,8 +5,10 @@ import logging
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import STATE_ON
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import (
     CONF_CODE_LENGTH,
@@ -38,7 +40,7 @@ async def async_setup_entry(
     async_add_entities([RpiRfSwitch(entry, rf_data)])
 
 
-class RpiRfSwitch(SwitchEntity):
+class RpiRfSwitch(SwitchEntity, RestoreEntity):
     """A switch that sends 433 MHz RF codes via a GPIO transmitter."""
 
     _attr_assumed_state = False
@@ -68,6 +70,13 @@ class RpiRfSwitch(SwitchEntity):
         self._code_length: int = config.get(
             CONF_CODE_LENGTH, DEFAULT_CODE_LENGTH
         )
+
+    async def async_added_to_hass(self) -> None:
+        """Restore last known state on startup."""
+        await super().async_added_to_hass()
+        last_state = await self.async_get_last_state()
+        if last_state is not None:
+            self._attr_is_on = last_state.state == STATE_ON
 
     @property
     def device_info(self):
