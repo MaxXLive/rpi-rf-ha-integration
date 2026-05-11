@@ -22,12 +22,15 @@ Home Assistant Custom Integration für 433 MHz Funksteckdosen über einen GPIO-S
 ## Verkabelung
 
 ```
-Raspberry Pi          433 MHz Sender
-─────────────         ──────────────
-Pin 2 (5V)    ───→    VCC
-Pin 9 (GND)   ───→    GND
-Pin 11 (GPIO17)───→   DATA
-                      + 17cm Draht an ANT (Antenne)
+Sender-Modul (von links, Antenne rechts):
+  GND    DATA    VCC    [ANT]
+
+Raspberry Pi              433 MHz Sender
+─────────────             ──────────────
+Pin 2  (5V)      ───→    VCC  (rechts)
+Pin 9  (GND)     ───→    GND  (links)
+Pin 11 (GPIO17)  ───→    DATA (mitte)
+                          + 17cm Draht an ANT
 ```
 
 > GPIO 17 ist der Standard. Du kannst jeden anderen GPIO-Pin verwenden und ihn in der UI auswählen.
