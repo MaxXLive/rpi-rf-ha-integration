@@ -41,7 +41,7 @@ async def async_setup_entry(
 class RpiRfSwitch(SwitchEntity):
     """A switch that sends 433 MHz RF codes via a GPIO transmitter."""
 
-    _attr_assumed_state = True
+    _attr_assumed_state = False
     _attr_should_poll = False
     _attr_has_entity_name = True
 
