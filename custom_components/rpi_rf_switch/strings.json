@@ -1,0 +1,70 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add RF Switch",
+        "description": "Configure a 433 MHz radio outlet controlled via a GPIO transmitter.",
+        "data": {
+          "name": "Device Name",
+          "gpio": "GPIO Pin (BCM)",
+          "mode": "Configuration Mode"
+        }
+      },
+      "dip": {
+        "title": "DIP Switch Configuration",
+        "description": "Enter the DIP switch settings from your outlet. System Code is 5 digits of 0/1 (e.g. {example_code}). Unit Code is the button letter (A–E).",
+        "data": {
+          "system_code": "System Code (e.g. 10101)",
+          "unit_code": "Unit Code",
+          "protocol": "Protocol",
+          "signal_repetitions": "Signal Repetitions"
+        }
+      },
+      "direct": {
+        "title": "Direct Code Configuration",
+        "description": "Enter the decimal RF codes for ON and OFF. You can sniff these with `rpi-rf_receive` on the command line.",
+        "data": {
+          "code_on": "Code ON (decimal)",
+          "code_off": "Code OFF (decimal)",
+          "protocol": "Protocol",
+          "pulselength": "Pulse Length (µs)",
+          "signal_repetitions": "Signal Repetitions",
+          "code_length": "Code Length (bits)"
+        }
+      }
+    },
+    "error": {
+      "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101)."
+    },
+    "abort": {
+      "already_configured": "This RF switch is already configured."
+    }
+  },
+  "options": {
+    "step": {
+      "dip_options": {
+        "title": "Edit DIP Switch Settings",
+        "data": {
+          "system_code": "System Code (e.g. 10101)",
+          "unit_code": "Unit Code",
+          "protocol": "Protocol",
+          "signal_repetitions": "Signal Repetitions"
+        }
+      },
+      "direct_options": {
+        "title": "Edit Code Settings",
+        "data": {
+          "code_on": "Code ON (decimal)",
+          "code_off": "Code OFF (decimal)",
+          "protocol": "Protocol",
+          "pulselength": "Pulse Length (µs)",
+          "signal_repetitions": "Signal Repetitions",
+          "code_length": "Code Length (bits)"
+        }
+      }
+    },
+    "error": {
+      "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101)."
+    }
+  }
+}

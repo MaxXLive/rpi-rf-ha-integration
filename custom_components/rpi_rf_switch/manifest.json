@@ -1,0 +1,11 @@
+{
+  "domain": "rpi_rf_switch",
+  "name": "Raspberry Pi 433 MHz RF Switch",
+  "codeowners": [],
+  "config_flow": true,
+  "documentation": "https://github.com/",
+  "integration_type": "device",
+  "iot_class": "assumed_state",
+  "requirements": ["RPi.GPIO==0.7.1", "rpi-rf==0.9.7"],
+  "version": "1.0.0"
+}

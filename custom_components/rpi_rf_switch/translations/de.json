@@ -1,0 +1,70 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "RF-Steckdose hinzufügen",
+        "description": "Konfiguriere eine 433 MHz Funksteckdose, die über einen GPIO-Sender gesteuert wird.",
+        "data": {
+          "name": "Gerätename",
+          "gpio": "GPIO Pin (BCM)",
+          "mode": "Konfigurationsmodus"
+        }
+      },
+      "dip": {
+        "title": "DIP-Schalter Konfiguration",
+        "description": "Gib die DIP-Schalter-Einstellungen deiner Steckdose ein. System-Code ist 5-stellig aus 0/1 (z.B. {example_code}). Unit-Code ist der Buchstabe (A–E).",
+        "data": {
+          "system_code": "System-Code (z.B. 10101)",
+          "unit_code": "Unit-Code",
+          "protocol": "Protokoll",
+          "signal_repetitions": "Signal-Wiederholungen"
+        }
+      },
+      "direct": {
+        "title": "Direkte Code-Konfiguration",
+        "description": "Gib die dezimalen RF-Codes für EIN und AUS ein. Du kannst diese mit `rpi-rf_receive` auf der Kommandozeile herausfinden.",
+        "data": {
+          "code_on": "Code EIN (dezimal)",
+          "code_off": "Code AUS (dezimal)",
+          "protocol": "Protokoll",
+          "pulselength": "Pulslänge (µs)",
+          "signal_repetitions": "Signal-Wiederholungen",
+          "code_length": "Code-Länge (Bits)"
+        }
+      }
+    },
+    "error": {
+      "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101)."
+    },
+    "abort": {
+      "already_configured": "Diese RF-Steckdose ist bereits konfiguriert."
+    }
+  },
+  "options": {
+    "step": {
+      "dip_options": {
+        "title": "DIP-Schalter bearbeiten",
+        "data": {
+          "system_code": "System-Code (z.B. 10101)",
+          "unit_code": "Unit-Code",
+          "protocol": "Protokoll",
+          "signal_repetitions": "Signal-Wiederholungen"
+        }
+      },
+      "direct_options": {
+        "title": "Code-Einstellungen bearbeiten",
+        "data": {
+          "code_on": "Code EIN (dezimal)",
+          "code_off": "Code AUS (dezimal)",
+          "protocol": "Protokoll",
+          "pulselength": "Pulslänge (µs)",
+          "signal_repetitions": "Signal-Wiederholungen",
+          "code_length": "Code-Länge (Bits)"
+        }
+      }
+    },
+    "error": {
+      "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101)."
+    }
+  }
+}
