@@ -6,8 +6,8 @@ from collections.abc import Callable
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
-from homeassistant.const import ATTR_ENTITY_ID, EVENT_CALL_SERVICE, STATE_ON
-from homeassistant.core import Event, HomeAssistant, callback
+from homeassistant.const import STATE_ON
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.restore_state import RestoreEntity
 
@@ -62,7 +62,6 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         """Initialize the RF switch."""
         self._entry = entry
         self._rx_unregister: Callable[[], None] | None = None
-        self._service_unsub: Callable[[], None] | None = None
 
         config = {**entry.data, **entry.options}
 
@@ -89,7 +88,7 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         )
 
     async def async_added_to_hass(self) -> None:
-        """Restore last known state and register callbacks."""
+        """Restore last known state and register RX callback."""
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
         if last_state is not None:
@@ -101,47 +100,11 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
                 self._on_rf_received
             )
 
-        self._service_unsub = self.hass.bus.async_listen(
-            EVENT_CALL_SERVICE,
-            self._on_service_call,
-            run_immediately=True,
-        )
-
     async def async_will_remove_from_hass(self) -> None:
-        """Unregister callbacks on removal."""
+        """Unregister RX callback on removal."""
         if self._rx_unregister:
             self._rx_unregister()
             self._rx_unregister = None
-        if self._service_unsub:
-            self._service_unsub()
-            self._service_unsub = None
-
-    @callback
-    def _on_service_call(self, event: Event) -> None:
-        """Pre-set state on service call for instant Alexa response."""
-        data = event.data
-        domain = data.get("domain")
-        if domain not in ("switch", "homeassistant"):
-            return
-        service = data.get("service")
-        if service not in ("turn_on", "turn_off", "toggle"):
-            return
-        service_data = data.get("service_data", {})
-        entity_ids = service_data.get(ATTR_ENTITY_ID)
-        if entity_ids is None:
-            return
-        if isinstance(entity_ids, str):
-            entity_ids = [entity_ids]
-        if self.entity_id not in entity_ids:
-            return
-
-        if service == "turn_on":
-            self._attr_is_on = True
-        elif service == "turn_off":
-            self._attr_is_on = False
-        elif service == "toggle":
-            self._attr_is_on = not self._attr_is_on
-        self.async_write_ha_state()
 
     def _on_rf_received(
         self, code: int, protocol: int, pulselength: int
