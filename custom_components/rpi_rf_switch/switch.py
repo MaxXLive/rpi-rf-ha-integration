@@ -142,19 +142,15 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
 
     async def async_turn_on(self, **kwargs) -> None:
         """Turn the switch on."""
-        await self._async_send_code(self._code_on)
         self._attr_is_on = True
         self.async_write_ha_state()
+        self.hass.async_add_executor_job(self._send_code_sync, self._code_on)
 
     async def async_turn_off(self, **kwargs) -> None:
         """Turn the switch off."""
-        await self._async_send_code(self._code_off)
         self._attr_is_on = False
         self.async_write_ha_state()
-
-    async def _async_send_code(self, code: int) -> None:
-        """Send an RF code in the executor (blocking I/O)."""
-        await self.hass.async_add_executor_job(self._send_code_sync, code)
+        self.hass.async_add_executor_job(self._send_code_sync, self._code_off)
 
     def _send_code_sync(self, code: int) -> None:
         """Send an RF code (runs in executor thread)."""
