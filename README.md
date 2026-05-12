@@ -8,16 +8,18 @@ Home Assistant custom integration for 433 MHz radio outlets via a GPIO transmitt
 
 ## Features
 
+- ✅ **Modular architecture** — TX module, RX module, and devices are separate config entries
 - ✅ **UI-based setup** — Add devices via *Settings → Devices & Services → Add Integration*
+- ✅ **Device types** — Outlet, Light, or Switch (proper HA entity categories)
 - ✅ **DIP switch mode** — Enter system code (5 switches) + unit code (A–E), codes are calculated automatically (PT2262)
 - ✅ **Direct code mode** — Enter decimal RF codes manually (e.g. sniffed via `rpi-rf_receive`)
-- ✅ **Learn mode** — Press buttons on your remote, codes are detected automatically (requires receiver module)
-- ✅ **Passive state sync** — Receiver monitors RF traffic and updates switch state when someone uses the physical remote
+- ✅ **Learn mode** — Press buttons on your remote, codes are detected automatically (requires RX module)
+- ✅ **Passive state sync** — RX module monitors RF traffic and updates state when someone uses the physical remote
 - ✅ **TX guard** — Prevents self-reception when transmitting (0.5s ignore window)
 - ✅ **Editable after setup** — Change settings via "Configure" in the UI
 - ✅ **State restore** — Remembers last switch state across HA restarts
 - ✅ **German & English** — UI fully localized
-- ✅ **Shared GPIO** — Multiple outlets share one transmitter (thread-safe)
+- ✅ **Shared GPIO** — Multiple devices share one TX module (thread-safe)
 
 ## Requirements
 
@@ -77,9 +79,25 @@ Pin 13 (GPIO27)  ───→    DATA (either one)
 
 ## Setup
 
+### Step 1: Add Transmitter Module (TX)
+
 1. **Settings** → **Devices & Services** → **Add Integration**
 2. Search for **"Raspberry Pi 433 MHz RF Switch"**
-3. Enter a name, select the TX GPIO pin, optionally set an RX GPIO pin, and choose a mode:
+3. The first time, you'll be asked to set up the **TX module** — select the GPIO pin connected to your transmitter
+
+### Step 2: Add Receiver Module (RX) — optional
+
+After adding the TX module, add the integration again:
+
+1. You'll see a choice menu — select **"Receiver Module (RX)"**
+2. Select the GPIO pin for your receiver (must be different from TX)
+
+### Step 3: Add Devices
+
+Add the integration again to add devices:
+
+1. Select **"RF Device"** from the choice menu
+2. Enter a name, choose the device type (Outlet / Light / Switch) and mode:
 
 ### DIP Switch Mode
 
@@ -102,23 +120,23 @@ If you know the decimal codes (e.g. sniffed via `rpi-rf_receive`):
 - **Pulse length**: Optional, in microseconds
 - **Code length**: Default 24 bits
 
-### Learn Mode (requires receiver)
+### Learn Mode (requires RX module)
 
-If you have a 433 MHz receiver module connected:
+If you have added a receiver module:
 
-1. Select **"Anlernen"** as mode and set the RX GPIO pin
+1. Select **"Anlernen"** as mode when adding a device
 2. Press the **ON** button on your remote repeatedly, then click Submit
 3. Press the **OFF** button on your remote repeatedly, then click Submit
 4. The codes, protocol, and pulse length are detected automatically
 5. If PT2262 encoding is detected, the system/unit codes are also extracted
 
-### Passive State Sync (requires receiver)
+### Passive State Sync (requires RX module)
 
-When an RX GPIO pin is configured, the integration runs a background listener that monitors RF traffic. When someone uses a physical remote, the matching switch state in HA is updated automatically. This works for all modes (DIP, direct, learn).
+When an RX module is configured, the integration runs a background listener that monitors RF traffic. When someone uses a physical remote, the matching device state in HA is updated automatically. This works for all modes (DIP, direct, learn).
 
-## Adding More Outlets
+## Adding More Devices
 
-Simply add the integration again — each outlet is created as a separate device.
+Simply add the integration again and select "RF Device" — each device is created as a separate config entry with its own HA entity.
 
 ## Supported Protocols
 
@@ -134,7 +152,10 @@ Simply add the integration again — each outlet is created as a separate device
 ## Technical Details
 
 - Based on the Python library [`rpi-rf`](https://github.com/milaq/rpi-rf)
-- Thread-safe: multiple outlets on the same GPIO don't block each other
+- **Modular architecture**: TX module, RX module, and devices are separate config entries
+- TX module: one per integration, manages GPIO transmitter (thread-safe via RLock)
+- RX module: optional, manages GPIO receiver (background listener thread)
+- Devices look up the TX module dynamically at send time (no stale references)
 - State restore: remembers last sent state across restarts
 - Passive state sync via background RX listener (optional)
 - TX guard: 0.5s after transmitting, received codes are ignored to prevent self-reception
@@ -157,16 +178,18 @@ Home Assistant Custom Integration für 433 MHz Funksteckdosen über einen GPIO-S
 
 ## Features
 
+- ✅ **Modulare Architektur** — TX-Modul, RX-Modul und Geräte sind getrennte Konfigurationseinträge
 - ✅ **UI-basiertes Setup** — Geräte über *Einstellungen → Geräte & Dienste → Integration hinzufügen* konfigurieren
+- ✅ **Gerätetypen** — Steckdose, Licht oder Schalter (richtige HA Entity-Kategorien)
 - ✅ **DIP-Schalter Modus** — System-Code (5 Schalter) + Unit-Code (A–E) eingeben, Codes werden automatisch berechnet (PT2262)
 - ✅ **Direkter Code Modus** — Dezimale RF-Codes manuell eingeben (z.B. per `rpi-rf_receive` gesnifft)
-- ✅ **Anlernmodus** — Fernbedienung drücken, Codes werden automatisch erkannt (benötigt Empfänger-Modul)
-- ✅ **Passiver State Sync** — Empfänger überwacht den Funkverkehr und aktualisiert den Schaltzustand wenn jemand die Fernbedienung benutzt
+- ✅ **Anlernmodus** — Fernbedienung drücken, Codes werden automatisch erkannt (benötigt RX-Modul)
+- ✅ **Passiver State Sync** — RX-Modul überwacht den Funkverkehr und aktualisiert den Zustand wenn jemand die Fernbedienung benutzt
 - ✅ **TX Guard** — Verhindert Selbstempfang beim Senden (0,5s Ignorier-Fenster)
 - ✅ **Nachträglich bearbeitbar** — Einstellungen über "Konfigurieren" in der UI ändern
 - ✅ **State Restore** — Merkt sich den letzten Schaltzustand über HA-Neustarts
 - ✅ **Deutsch & Englisch** — UI komplett lokalisiert
-- ✅ **Shared GPIO** — Mehrere Steckdosen teilen sich einen Sender (thread-safe)
+- ✅ **Shared GPIO** — Mehrere Geräte teilen sich ein TX-Modul (thread-safe)
 
 ## Voraussetzungen
 
@@ -226,9 +249,25 @@ Pin 13 (GPIO27)  ───→    DATA (einer davon)
 
 ## Einrichtung
 
+### Schritt 1: Sender-Modul (TX) hinzufügen
+
 1. **Einstellungen** → **Geräte & Dienste** → **Integration hinzufügen**
 2. Suche nach **"Raspberry Pi 433 MHz RF Switch"**
-3. Gib einen Namen ein, wähle den TX GPIO-Pin, optional einen RX GPIO-Pin, und den Modus:
+3. Beim ersten Mal wird das **TX-Modul** eingerichtet — wähle den GPIO-Pin deines Senders
+
+### Schritt 2: Empfänger-Modul (RX) hinzufügen — optional
+
+Nach dem TX-Modul, füge die Integration nochmal hinzu:
+
+1. Du siehst ein Auswahlmenü — wähle **"Empfänger-Modul (RX)"**
+2. Wähle den GPIO-Pin für deinen Empfänger (muss anders sein als TX)
+
+### Schritt 3: Geräte hinzufügen
+
+Füge die Integration nochmal hinzu um Geräte anzulegen:
+
+1. Wähle **"Funkgerät"** im Auswahlmenü
+2. Gib einen Namen ein, wähle den Gerätetyp (Steckdose / Licht / Schalter) und den Modus:
 
 ### DIP-Schalter Modus
 
@@ -251,23 +290,23 @@ Wenn du die dezimalen Codes kennst (z.B. per `rpi-rf_receive` gesnifft):
 - **Pulslänge**: Optional, in Mikrosekunden
 - **Code-Länge**: Standard 24 Bit
 
-### Anlernmodus (benötigt Empfänger)
+### Anlernmodus (benötigt RX-Modul)
 
-Wenn ein 433 MHz Empfänger-Modul angeschlossen ist:
+Wenn ein Empfänger-Modul hinzugefügt wurde:
 
-1. Wähle **"Anlernen"** als Modus und setze den RX GPIO-Pin
+1. Wähle **"Anlernen"** als Modus beim Gerät hinzufügen
 2. Drücke wiederholt den **EIN**-Knopf auf der Fernbedienung, dann klicke Absenden
 3. Drücke wiederholt den **AUS**-Knopf auf der Fernbedienung, dann klicke Absenden
 4. Codes, Protokoll und Pulslänge werden automatisch erkannt
 5. Falls PT2262-Kodierung erkannt wird, werden auch System-/Unit-Codes extrahiert
 
-### Passiver State Sync (benötigt Empfänger)
+### Passiver State Sync (benötigt RX-Modul)
 
-Wenn ein RX GPIO-Pin konfiguriert ist, läuft ein Hintergrund-Listener der den Funkverkehr überwacht. Wenn jemand die physische Fernbedienung benutzt, wird der passende Schaltzustand in HA automatisch aktualisiert. Dies funktioniert mit allen Modi (DIP, direkt, angelernt).
+Wenn ein RX-Modul konfiguriert ist, läuft ein Hintergrund-Listener der den Funkverkehr überwacht. Wenn jemand die physische Fernbedienung benutzt, wird der passende Gerätezustand in HA automatisch aktualisiert. Dies funktioniert mit allen Modi (DIP, direkt, angelernt).
 
-## Weitere Steckdosen hinzufügen
+## Weitere Geräte hinzufügen
 
-Einfach die Integration nochmal hinzufügen — jede Steckdose wird als eigenes Gerät angelegt.
+Einfach die Integration nochmal hinzufügen und "Funkgerät" wählen — jedes Gerät wird als eigener Konfigurationseintrag mit eigenem HA Entity angelegt.
 
 ## Unterstützte Protokolle
 
@@ -283,7 +322,10 @@ Einfach die Integration nochmal hinzufügen — jede Steckdose wird als eigenes 
 ## Technische Details
 
 - Basiert auf der Python-Bibliothek [`rpi-rf`](https://github.com/milaq/rpi-rf)
-- Thread-safe: Mehrere Steckdosen am gleichen GPIO blockieren sich nicht
+- **Modulare Architektur**: TX-Modul, RX-Modul und Geräte sind getrennte Konfigurationseinträge
+- TX-Modul: einmal pro Integration, verwaltet GPIO-Sender (thread-safe via RLock)
+- RX-Modul: optional, verwaltet GPIO-Empfänger (Hintergrund-Listener-Thread)
+- Geräte suchen das TX-Modul dynamisch beim Senden (keine veralteten Referenzen)
 - State Restore: Merkt sich den letzten Zustand über Neustarts
 - Passiver State Sync über Hintergrund-RX-Listener (optional)
 - TX Guard: 0,5s nach dem Senden werden empfangene Codes ignoriert um Selbstempfang zu verhindern
