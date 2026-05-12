@@ -15,9 +15,16 @@ CONF_PULSELENGTH = "pulselength"
 CONF_SIGNAL_REPETITIONS = "signal_repetitions"
 CONF_CODE_LENGTH = "code_length"
 
+CONF_DEVICE_TYPE = "device_type"
+
 MODE_DIP = "dip"
 MODE_DIRECT = "direct"
 MODE_LEARN = "learn"
+
+DEVICE_TYPE_OUTLET = "outlet"
+DEVICE_TYPE_LIGHT = "light"
+DEVICE_TYPE_SWITCH = "switch"
+DEFAULT_DEVICE_TYPE = DEVICE_TYPE_OUTLET
 
 DEFAULT_GPIO = 17
 DEFAULT_RX_GPIO = 27

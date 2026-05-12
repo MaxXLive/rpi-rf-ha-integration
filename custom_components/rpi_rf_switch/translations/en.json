@@ -8,7 +8,8 @@
           "name": "Device Name",
           "gpio": "TX GPIO Pin (BCM)",
           "rx_gpio": "RX GPIO Pin (optional, for receiver)",
-          "mode": "Configuration Mode"
+          "mode": "Configuration Mode",
+          "device_type": "Device Type"
         }
       },
       "dip": {
@@ -61,7 +62,8 @@
           "system_code": "System Code (e.g. 10101)",
           "unit_code": "Unit Code",
           "protocol": "Protocol",
-          "signal_repetitions": "Signal Repetitions"
+          "signal_repetitions": "Signal Repetitions",
+          "device_type": "Device Type"
         }
       },
       "direct_options": {
@@ -72,7 +74,8 @@
           "protocol": "Protocol",
           "pulselength": "Pulse Length (µs)",
           "signal_repetitions": "Signal Repetitions",
-          "code_length": "Code Length (bits)"
+          "code_length": "Code Length (bits)",
+          "device_type": "Device Type"
         }
       }
     },

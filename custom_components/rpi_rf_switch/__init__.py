@@ -13,7 +13,7 @@ from .const import CONF_GPIO, CONF_RX_GPIO, DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
-PLATFORMS = ["switch"]
+PLATFORMS = ["switch", "light"]
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

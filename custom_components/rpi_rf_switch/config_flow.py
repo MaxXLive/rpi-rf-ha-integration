@@ -16,6 +16,7 @@ from .const import (
     CONF_CODE_LENGTH,
     CONF_CODE_OFF,
     CONF_CODE_ON,
+    CONF_DEVICE_TYPE,
     CONF_GPIO,
     CONF_MODE,
     CONF_NAME,
@@ -26,10 +27,14 @@ from .const import (
     CONF_SYSTEM_CODE,
     CONF_UNIT_CODE,
     DEFAULT_CODE_LENGTH,
+    DEFAULT_DEVICE_TYPE,
     DEFAULT_GPIO,
     DEFAULT_PROTOCOL,
     DEFAULT_RX_GPIO,
     DEFAULT_SIGNAL_REPETITIONS,
+    DEVICE_TYPE_LIGHT,
+    DEVICE_TYPE_OUTLET,
+    DEVICE_TYPE_SWITCH,
     DOMAIN,
     MODE_DIP,
     MODE_DIRECT,
@@ -43,6 +48,12 @@ PROTOCOL_OPTIONS = {1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6 (HT6P20B)"}
 UNIT_OPTIONS = {"A": "A", "B": "B", "C": "C", "D": "D", "E": "E"}
 RX_GPIO_OPTIONS = {0: "-- Nicht verwenden --"}
 RX_GPIO_OPTIONS.update({pin: f"GPIO {pin}" for pin in GPIO_PINS})
+
+DEVICE_TYPE_OPTIONS = {
+    DEVICE_TYPE_OUTLET: "Steckdose / Outlet",
+    DEVICE_TYPE_LIGHT: "Licht / Light",
+    DEVICE_TYPE_SWITCH: "Schalter / Switch",
+}
 
 
 class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -106,6 +117,9 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             MODE_LEARN: "Anlernen (Code von Fernbedienung)",
                         }
                     ),
+                    vol.Required(
+                        CONF_DEVICE_TYPE, default=DEFAULT_DEVICE_TYPE
+                    ): vol.In(DEVICE_TYPE_OPTIONS),
                 }
             ),
             errors=errors,
@@ -422,6 +436,12 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                             DEFAULT_SIGNAL_REPETITIONS,
                         ),
                     ): int,
+                    vol.Required(
+                        CONF_DEVICE_TYPE,
+                        default=data.get(
+                            CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+                        ),
+                    ): vol.In(DEVICE_TYPE_OPTIONS),
                 }
             ),
             errors=errors,
@@ -465,6 +485,12 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                         CONF_CODE_LENGTH,
                         default=data.get(CONF_CODE_LENGTH, DEFAULT_CODE_LENGTH),
                     ): int,
+                    vol.Required(
+                        CONF_DEVICE_TYPE,
+                        default=data.get(
+                            CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+                        ),
+                    ): vol.In(DEVICE_TYPE_OPTIONS),
                 }
             ),
         )
