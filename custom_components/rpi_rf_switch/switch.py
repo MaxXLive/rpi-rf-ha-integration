@@ -69,9 +69,10 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         # Merge options over data (options take precedence for edits)
         config = {**entry.data, **entry.options}
 
-        self._attr_name = config[CONF_NAME]
+        self._attr_name = None
         self._attr_unique_id = entry.unique_id or entry.entry_id
         self._attr_is_on = False
+        self._device_name = config[CONF_NAME]
 
         # Set device class based on device type
         device_type = config.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE)
@@ -142,7 +143,7 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         model = "Funksteckdose" if device_type == DEVICE_TYPE_OUTLET else "Funkschalter"
         return {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
-            "name": self._attr_name,
+            "name": self._device_name,
             "manufacturer": "433 MHz RF",
             "model": model,
         }

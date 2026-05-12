@@ -69,9 +69,10 @@ class RpiRfLight(LightEntity, RestoreEntity):
 
         config = {**entry.data, **entry.options}
 
-        self._attr_name = config[CONF_NAME]
+        self._attr_name = None
         self._attr_unique_id = entry.unique_id or entry.entry_id
         self._attr_is_on = False
+        self._device_name = config[CONF_NAME]
 
         self._code_on: int = config[CONF_CODE_ON]
         self._code_off: int = config[CONF_CODE_OFF]
@@ -119,7 +120,7 @@ class RpiRfLight(LightEntity, RestoreEntity):
         """Return device information for the HA device registry."""
         return {
             "identifiers": {(DOMAIN, self._attr_unique_id)},
-            "name": self._attr_name,
+            "name": self._device_name,
             "manufacturer": "433 MHz RF",
             "model": "Funklicht",
         }
