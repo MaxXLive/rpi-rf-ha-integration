@@ -1,4 +1,4 @@
-"""PT2262 code calculation for DIP-switch based 433 MHz outlets."""
+"""PT2262 code calculation and decoding for DIP-switch based 433 MHz outlets."""
 
 
 def calc_pt2262_code(system_code: str, unit_code: str, command: bool) -> int:
@@ -47,3 +47,52 @@ def calc_pt2262_code(system_code: str, unit_code: str, command: bool) -> int:
     binary = "".join(tribit_to_bin[t] for t in tribits)
 
     return int(binary, 2)
+
+
+def decode_pt2262_code(code: int) -> dict | None:
+    """Try to reverse-engineer PT2262 system/unit codes from a decimal code.
+
+    Returns dict with system_code, unit_code, command if valid PT2262,
+    or None if the code doesn't match PT2262 encoding.
+    """
+    if code < 0 or code > 0xFFFFFF:
+        return None
+
+    binary = format(code, "024b")
+
+    tribit_map = {"00": "0", "01": "F", "11": "1"}
+    tribits: list[str] = []
+    for i in range(0, 24, 2):
+        pair = binary[i : i + 2]
+        if pair not in tribit_map:
+            return None
+        tribits.append(tribit_map[pair])
+
+    # System code (tribits 0-4): must be '0' or 'F' only
+    system_tribits = tribits[:5]
+    if any(t == "1" for t in system_tribits):
+        return None
+
+    # Unit code (tribits 5-9): exactly one '0', rest 'F'
+    unit_tribits = tribits[5:10]
+    if unit_tribits.count("0") != 1 or any(t == "1" for t in unit_tribits):
+        return None
+
+    # Command (tribits 10-11): 'FF' = ON, 'F0' = OFF
+    cmd = tribits[10:12]
+    if cmd == ["F", "F"]:
+        command = True
+    elif cmd == ["F", "0"]:
+        command = False
+    else:
+        return None
+
+    # Decode: tribit '0' → DIP ON (1), tribit 'F' → DIP OFF (0)
+    system_code = "".join("1" if t == "0" else "0" for t in system_tribits)
+    unit_code = chr(ord("A") + unit_tribits.index("0"))
+
+    return {
+        "system_code": system_code,
+        "unit_code": unit_code,
+        "command": command,
+    }

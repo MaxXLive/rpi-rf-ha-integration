@@ -6,7 +6,8 @@
         "description": "Configure a 433 MHz radio outlet controlled via a GPIO transmitter.",
         "data": {
           "name": "Device Name",
-          "gpio": "GPIO Pin (BCM)",
+          "gpio": "TX GPIO Pin (BCM)",
+          "rx_gpio": "RX GPIO Pin (optional, for receiver)",
           "mode": "Configuration Mode"
         }
       },
@@ -31,13 +32,25 @@
           "signal_repetitions": "Signal Repetitions",
           "code_length": "Code Length (bits)"
         }
+      },
+      "learn_on": {
+        "title": "Learn ON Code",
+        "description": "Press the ON button on your remote repeatedly, then click Submit. The receiver will capture the code automatically."
+      },
+      "learn_off": {
+        "title": "Learn OFF Code",
+        "description": "Now press the OFF button on your remote repeatedly, then click Submit."
       }
     },
     "error": {
-      "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101)."
+      "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101).",
+      "no_code_received": "No code received. Make sure the receiver is connected correctly and try again.",
+      "rx_gpio_required": "RX GPIO Pin is required for learn mode.",
+      "rx_same_as_tx": "RX GPIO must be different from TX GPIO."
     },
     "abort": {
-      "already_configured": "This RF switch is already configured."
+      "already_configured": "This RF switch is already configured.",
+      "no_rx_gpio": "No RX GPIO configured. Please set an RX GPIO pin to use learn mode."
     }
   },
   "options": {

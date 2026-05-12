@@ -6,7 +6,8 @@
         "description": "Konfiguriere eine 433 MHz Funksteckdose, die über einen GPIO-Sender gesteuert wird.",
         "data": {
           "name": "Gerätename",
-          "gpio": "GPIO Pin (BCM)",
+          "gpio": "TX GPIO Pin (BCM)",
+          "rx_gpio": "RX GPIO Pin (optional, für Empfänger)",
           "mode": "Konfigurationsmodus"
         }
       },
@@ -31,13 +32,25 @@
           "signal_repetitions": "Signal-Wiederholungen",
           "code_length": "Code-Länge (Bits)"
         }
+      },
+      "learn_on": {
+        "title": "EIN-Code anlernen",
+        "description": "Drücke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung und klicke dann auf Absenden. Der Empfänger erkennt den Code automatisch."
+      },
+      "learn_off": {
+        "title": "AUS-Code anlernen",
+        "description": "Drücke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung und klicke dann auf Absenden."
       }
     },
     "error": {
-      "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101)."
+      "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101).",
+      "no_code_received": "Kein Code empfangen. Stelle sicher, dass der Empfänger richtig angeschlossen ist und versuche es erneut.",
+      "rx_gpio_required": "RX GPIO Pin wird für den Anlernmodus benötigt.",
+      "rx_same_as_tx": "RX GPIO muss ein anderer Pin sein als TX GPIO."
     },
     "abort": {
-      "already_configured": "Diese RF-Steckdose ist bereits konfiguriert."
+      "already_configured": "Diese RF-Steckdose ist bereits konfiguriert.",
+      "no_rx_gpio": "Kein RX GPIO konfiguriert. Bitte setze einen RX GPIO Pin um den Anlernmodus zu nutzen."
     }
   },
   "options": {

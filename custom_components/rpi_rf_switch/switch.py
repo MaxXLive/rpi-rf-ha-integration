@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 
 from homeassistant.components.switch import SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -52,6 +53,7 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         self._entry = entry
         self._rfdevice = rf_data["device"]
         self._lock = rf_data["lock"]
+        self._rx_unregister: Callable[[], None] | None = None
 
         # Merge options over data (options take precedence for edits)
         config = {**entry.data, **entry.options}
@@ -72,11 +74,47 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         )
 
     async def async_added_to_hass(self) -> None:
-        """Restore last known state on startup."""
+        """Restore last known state and register RX callback."""
         await super().async_added_to_hass()
         last_state = await self.async_get_last_state()
         if last_state is not None:
             self._attr_is_on = last_state.state == STATE_ON
+
+        # Register with RX listener for passive state sync
+        rx_listener = self.hass.data[DOMAIN].get("rx_listener")
+        if rx_listener:
+            self._rx_unregister = rx_listener.register_callback(
+                self._on_rf_received
+            )
+            _LOGGER.debug(
+                "RX callback registered for %s (on=%s, off=%s)",
+                self._attr_name,
+                self._code_on,
+                self._code_off,
+            )
+
+    async def async_will_remove_from_hass(self) -> None:
+        """Unregister RX callback on removal."""
+        if self._rx_unregister:
+            self._rx_unregister()
+            self._rx_unregister = None
+
+    def _on_rf_received(
+        self, code: int, protocol: int, pulselength: int
+    ) -> None:
+        """Handle received RF code (called from RX thread)."""
+        if code == self._code_on and not self._attr_is_on:
+            _LOGGER.info(
+                "RX matched ON for %s (code=%s)", self._attr_name, code
+            )
+            self._attr_is_on = True
+            self.schedule_update_ha_state()
+        elif code == self._code_off and self._attr_is_on:
+            _LOGGER.info(
+                "RX matched OFF for %s (code=%s)", self._attr_name, code
+            )
+            self._attr_is_on = False
+            self.schedule_update_ha_state()
 
     @property
     def device_info(self):
@@ -110,6 +148,11 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
 
     def _send_code_sync(self, code: int) -> None:
         """Send an RF code (runs in executor thread)."""
+        # Set TX guard so the RX listener ignores our own transmission
+        rx_listener = self.hass.data[DOMAIN].get("rx_listener")
+        if rx_listener:
+            rx_listener.set_tx_guard()
+
         with self._lock:
             for _ in range(self._signal_repetitions):
                 self._rfdevice.tx_code(
