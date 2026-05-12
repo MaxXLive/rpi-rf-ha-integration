@@ -141,6 +141,10 @@ Simply add the integration again — each outlet is created as a separate device
 - PT2262 reverse decoding: learned codes are automatically analyzed for system/unit structure
 - GPIO access via `RPi.GPIO` (works on Pi 3/4/Zero, **not** on Pi 5)
 
+## Roadmap
+
+- [ ] **Raspberry Pi 5 support** — `RPi.GPIO` doesn't support the Pi 5's RP1 chip. Potential fix: use `rpi-lgpio` as drop-in replacement. Needs testing on Pi 5 hardware.
+
 ## License
 
 MIT License
@@ -285,6 +289,10 @@ Einfach die Integration nochmal hinzufügen — jede Steckdose wird als eigenes 
 - TX Guard: 0,5s nach dem Senden werden empfangene Codes ignoriert um Selbstempfang zu verhindern
 - PT2262 Rückwärts-Dekodierung: Angelernte Codes werden automatisch auf System-/Unit-Struktur analysiert
 - GPIO-Zugriff über `RPi.GPIO` (funktioniert auf Pi 3/4/Zero, **nicht** auf Pi 5)
+
+## Roadmap
+
+- [ ] **Raspberry Pi 5 Unterstützung** — `RPi.GPIO` unterstützt den RP1-Chip des Pi 5 nicht. Möglicher Fix: `rpi-lgpio` als Drop-in Ersatz. Muss auf Pi 5 Hardware getestet werden.
 
 ## Lizenz
 
