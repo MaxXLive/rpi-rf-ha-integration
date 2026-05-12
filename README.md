@@ -162,6 +162,26 @@ Simply add the integration again and select "RF Device" — each device is creat
 - PT2262 reverse decoding: learned codes are automatically analyzed for system/unit structure
 - GPIO access via `RPi.GPIO` (works on Pi 3/4/Zero, **not** on Pi 5)
 
+## Alexa Integration
+
+If you use the DIY Alexa Smart Home integration (Lambda-based, without Nabu Casa), Alexa may show the **old** state after switching. To fix this, enable **Proactive Events**:
+
+1. [Alexa Developer Console](https://developer.amazon.com/alexa/console/ask) → Your Skill → Build → Permissions → **"Send Alexa Events"** ✅
+2. Copy the **Client ID** and **Client Secret** from the permissions page
+3. Add to `configuration.yaml`:
+   ```yaml
+   alexa:
+     smart_home:
+       locale: de-DE  # or en-US
+       endpoint: https://api.eu.amazonalexa.com/v3/events  # eu for Europe
+       client_id: "YOUR_CLIENT_ID"
+       client_secret: "YOUR_CLIENT_SECRET"
+   ```
+4. Restart Home Assistant
+5. In the Alexa app: **deactivate** the skill, **re-enable** it, and rediscover devices
+
+> This is not specific to this integration — it affects all HA entities with DIY Alexa setups.
+
 ## Roadmap
 
 - [ ] **Raspberry Pi 5 support** — `RPi.GPIO` doesn't support the Pi 5's RP1 chip. Potential fix: use `rpi-lgpio` as drop-in replacement. Needs testing on Pi 5 hardware.
@@ -331,6 +351,26 @@ Einfach die Integration nochmal hinzufügen und "Funkgerät" wählen — jedes G
 - TX Guard: 0,5s nach dem Senden werden empfangene Codes ignoriert um Selbstempfang zu verhindern
 - PT2262 Rückwärts-Dekodierung: Angelernte Codes werden automatisch auf System-/Unit-Struktur analysiert
 - GPIO-Zugriff über `RPi.GPIO` (funktioniert auf Pi 3/4/Zero, **nicht** auf Pi 5)
+
+## Alexa Integration
+
+Wenn du die DIY Alexa Smart Home Integration (Lambda-basiert, ohne Nabu Casa) nutzt, zeigt Alexa nach dem Schalten möglicherweise den **alten** Zustand an. Um das zu beheben, aktiviere **Proactive Events**:
+
+1. [Alexa Developer Console](https://developer.amazon.com/alexa/console/ask) → Dein Skill → Build → Permissions → **"Send Alexa Events"** ✅
+2. **Client ID** und **Client Secret** von der Permissions-Seite kopieren
+3. In `configuration.yaml` ergänzen:
+   ```yaml
+   alexa:
+     smart_home:
+       locale: de-DE
+       endpoint: https://api.eu.amazonalexa.com/v3/events  # eu für Europa
+       client_id: "DEINE_CLIENT_ID"
+       client_secret: "DEIN_CLIENT_SECRET"
+   ```
+4. Home Assistant neu starten
+5. In der Alexa App: Skill **deaktivieren**, neu **verknüpfen** und Geräte neu entdecken
+
+> Das ist kein Problem dieser Integration — es betrifft alle HA Entities mit DIY Alexa Setups.
 
 ## Roadmap
 
