@@ -17,12 +17,12 @@ from .const import (
     CONF_CODE_OFF,
     CONF_CODE_ON,
     CONF_DEVICE_TYPE,
+    CONF_ENTRY_TYPE,
     CONF_GPIO,
     CONF_MODE,
     CONF_NAME,
     CONF_PROTOCOL,
     CONF_PULSELENGTH,
-    CONF_RX_GPIO,
     CONF_SIGNAL_REPETITIONS,
     CONF_SYSTEM_CODE,
     CONF_UNIT_CODE,
@@ -36,6 +36,9 @@ from .const import (
     DEVICE_TYPE_OUTLET,
     DEVICE_TYPE_SWITCH,
     DOMAIN,
+    ENTRY_TYPE_DEVICE,
+    ENTRY_TYPE_RX,
+    ENTRY_TYPE_TX,
     MODE_DIP,
     MODE_DIRECT,
     MODE_LEARN,
@@ -46,9 +49,6 @@ _LOGGER = logging.getLogger(__name__)
 GPIO_PINS = list(range(2, 28))
 PROTOCOL_OPTIONS = {1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6 (HT6P20B)"}
 UNIT_OPTIONS = {"A": "A", "B": "B", "C": "C", "D": "D", "E": "E"}
-RX_GPIO_OPTIONS = {0: "-- Nicht verwenden --"}
-RX_GPIO_OPTIONS.update({pin: f"GPIO {pin}" for pin in GPIO_PINS})
-
 DEVICE_TYPE_OPTIONS = {
     DEVICE_TYPE_OUTLET: "Steckdose / Outlet",
     DEVICE_TYPE_LIGHT: "Licht / Light",
@@ -59,7 +59,7 @@ DEVICE_TYPE_OPTIONS = {
 class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for Raspberry Pi RF Switch."""
 
-    VERSION = 1
+    VERSION = 2
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -67,56 +67,159 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._learn_rx = None
         self._learn_rx_is_temp = False
 
+    def _get_entries_by_type(self, entry_type: str) -> list:
+        """Get all config entries of a given type."""
+        return [
+            e
+            for e in self.hass.config_entries.async_entries(DOMAIN)
+            if e.data.get(CONF_ENTRY_TYPE) == entry_type
+        ]
+
+    def _has_tx(self) -> bool:
+        return len(self._get_entries_by_type(ENTRY_TYPE_TX)) > 0
+
+    def _has_rx(self) -> bool:
+        return len(self._get_entries_by_type(ENTRY_TYPE_RX)) > 0
+
+    # --- Step 1: What to add? ---
+
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Step 1: Name, GPIO pin, RX GPIO, and configuration mode."""
-        errors: dict[str, str] = {}
+        """Entry point: decide what to add."""
+        has_tx = self._has_tx()
+        has_rx = self._has_rx()
 
+        # No TX module yet -> go straight to TX setup
+        if not has_tx:
+            return await self.async_step_tx_module()
+
+        # TX + RX both exist -> go straight to device setup
+        if has_tx and has_rx:
+            return await self.async_step_device()
+
+        # TX exists but no RX -> show choice
         if user_input is not None:
-            self._data.update(user_input)
-            rx_gpio = user_input.get(CONF_RX_GPIO, 0)
-
-            # Validate RX GPIO != TX GPIO
-            if rx_gpio and rx_gpio > 0 and rx_gpio == user_input[CONF_GPIO]:
-                errors[CONF_RX_GPIO] = "rx_same_as_tx"
-            elif user_input[CONF_MODE] == MODE_LEARN:
-                # Learn mode requires RX GPIO
-                global_rx = self.hass.data.get(DOMAIN, {}).get("rx_listener")
-                if (not rx_gpio or rx_gpio == 0) and not global_rx:
-                    errors[CONF_RX_GPIO] = "rx_gpio_required"
-                elif not rx_gpio and global_rx:
-                    self._data[CONF_RX_GPIO] = global_rx.gpio
-
-            if not errors:
-                if user_input[CONF_MODE] == MODE_DIP:
-                    return await self.async_step_dip()
-                if user_input[CONF_MODE] == MODE_LEARN:
-                    return await self.async_step_learn_on()
-                return await self.async_step_direct()
-
-        # Determine default RX GPIO
-        global_rx = self.hass.data.get(DOMAIN, {}).get("rx_listener")
-        default_rx = global_rx.gpio if global_rx else 0
+            if user_input["choice"] == "rx_module":
+                return await self.async_step_rx_module()
+            return await self.async_step_device()
 
         return self.async_show_form(
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_NAME): str,
+                    vol.Required("choice", default="device"): vol.In(
+                        {
+                            "device": "🔌 Funkgerät hinzufügen",
+                            "rx_module": "📻 Empfänger-Modul einrichten",
+                        }
+                    ),
+                }
+            ),
+        )
+
+    # --- TX Module ---
+
+    async def async_step_tx_module(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure the TX transmitter module."""
+        if user_input is not None:
+            await self.async_set_unique_id("rpi_rf_tx_module")
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title="📡 Sender-Modul (TX)",
+                data={
+                    CONF_ENTRY_TYPE: ENTRY_TYPE_TX,
+                    CONF_GPIO: user_input[CONF_GPIO],
+                },
+            )
+
+        return self.async_show_form(
+            step_id="tx_module",
+            data_schema=vol.Schema(
+                {
                     vol.Required(CONF_GPIO, default=DEFAULT_GPIO): vol.In(
                         {pin: f"GPIO {pin}" for pin in GPIO_PINS}
                     ),
-                    vol.Required(CONF_RX_GPIO, default=default_rx): vol.In(
-                        RX_GPIO_OPTIONS
+                }
+            ),
+        )
+
+    # --- RX Module ---
+
+    async def async_step_rx_module(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure the RX receiver module."""
+        errors: dict[str, str] = {}
+
+        if user_input is not None:
+            tx_entries = self._get_entries_by_type(ENTRY_TYPE_TX)
+            tx_gpio = tx_entries[0].data[CONF_GPIO] if tx_entries else None
+
+            if user_input[CONF_GPIO] == tx_gpio:
+                errors[CONF_GPIO] = "rx_same_as_tx"
+            else:
+                await self.async_set_unique_id("rpi_rf_rx_module")
+                self._abort_if_unique_id_configured()
+                return self.async_create_entry(
+                    title="📻 Empfänger-Modul (RX)",
+                    data={
+                        CONF_ENTRY_TYPE: ENTRY_TYPE_RX,
+                        CONF_GPIO: user_input[CONF_GPIO],
+                    },
+                )
+
+        return self.async_show_form(
+            step_id="rx_module",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_GPIO, default=DEFAULT_RX_GPIO): vol.In(
+                        {pin: f"GPIO {pin}" for pin in GPIO_PINS}
                     ),
-                    vol.Required(CONF_MODE, default=MODE_DIP): vol.In(
-                        {
-                            MODE_DIP: "DIP-Schalter (System + Unit Code)",
-                            MODE_DIRECT: "Direkter Code (Dezimal)",
-                            MODE_LEARN: "Anlernen (Code von Fernbedienung)",
-                        }
-                    ),
+                }
+            ),
+            errors=errors,
+        )
+
+    # --- Device setup ---
+
+    async def async_step_device(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Configure a new RF device (outlet/light/switch)."""
+        errors: dict[str, str] = {}
+        has_rx = self._has_rx()
+
+        if user_input is not None:
+            self._data.update(user_input)
+            self._data[CONF_ENTRY_TYPE] = ENTRY_TYPE_DEVICE
+            mode = user_input[CONF_MODE]
+
+            if mode == MODE_LEARN and not has_rx:
+                errors[CONF_MODE] = "rx_required_for_learn"
+
+            if not errors:
+                if mode == MODE_DIP:
+                    return await self.async_step_dip()
+                if mode == MODE_LEARN:
+                    return await self.async_step_learn_on()
+                return await self.async_step_direct()
+
+        modes = {
+            MODE_DIP: "DIP-Schalter (System + Unit Code)",
+            MODE_DIRECT: "Direkter Code (Dezimal)",
+        }
+        if has_rx:
+            modes[MODE_LEARN] = "Anlernen (Code von Fernbedienung)"
+
+        return self.async_show_form(
+            step_id="device",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_NAME): str,
+                    vol.Required(CONF_MODE, default=MODE_DIP): vol.In(modes),
                     vol.Required(
                         CONF_DEVICE_TYPE, default=DEFAULT_DEVICE_TYPE
                     ): vol.In(DEVICE_TYPE_OPTIONS),
@@ -125,10 +228,12 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    # --- DIP switch step ---
+
     async def async_step_dip(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Step 2a: DIP switch configuration."""
+        """DIP switch configuration."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -146,9 +251,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._data[CONF_CODE_ON] = code_on
                 self._data[CONF_CODE_OFF] = code_off
 
-                unique_id = (
-                    f"rpi_rf_{self._data[CONF_GPIO]}_{system_code}_{unit_code}"
-                )
+                unique_id = f"rpi_rf_{system_code}_{unit_code}"
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
 
@@ -175,23 +278,21 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 }
             ),
             errors=errors,
-            description_placeholders={
-                "example_code": "10101",
-            },
+            description_placeholders={"example_code": "10101"},
         )
+
+    # --- Direct code step ---
 
     async def async_step_direct(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Step 2b: Direct code configuration."""
+        """Direct code configuration."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             self._data.update(user_input)
 
-            unique_id = (
-                f"rpi_rf_{self._data[CONF_GPIO]}_{user_input[CONF_CODE_ON]}"
-            )
+            unique_id = f"rpi_rf_{user_input[CONF_CODE_ON]}"
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
@@ -226,18 +327,17 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     async def _ensure_learn_listener(self) -> bool:
         """Ensure an RX listener is available for learning."""
-        rx_gpio = self._data.get(CONF_RX_GPIO, 0)
-        if not rx_gpio or rx_gpio == 0:
-            return False
-
-        from .receiver import RFReceiver
-
-        # Reuse global listener if on the same GPIO
         global_rx = self.hass.data.get(DOMAIN, {}).get("rx_listener")
-        if global_rx and global_rx.gpio == rx_gpio:
+        if global_rx:
             self._learn_rx = global_rx
             self._learn_rx_is_temp = False
         else:
+            rx_entries = self._get_entries_by_type(ENTRY_TYPE_RX)
+            if not rx_entries:
+                return False
+            rx_gpio = rx_entries[0].data[CONF_GPIO]
+            from .receiver import RFReceiver
+
             self._learn_rx = RFReceiver(rx_gpio)
             await self.hass.async_add_executor_job(self._learn_rx.start)
             self._learn_rx_is_temp = True
@@ -258,18 +358,15 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_learn_on(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Learn ON code: listen for remote button press."""
+        """Learn ON code."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
-            # User submitted — read captured codes
             captured = await self.hass.async_add_executor_job(
                 self._learn_rx.stop_capture
             )
-
             if not captured:
                 errors["base"] = "no_code_received"
-                # Restart capture for retry
                 await self.hass.async_add_executor_job(
                     self._learn_rx.start_capture
                 )
@@ -284,13 +381,11 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     best.protocol,
                     best.pulselength,
                 )
-                # Start capture for OFF code
                 await self.hass.async_add_executor_job(
                     self._learn_rx.start_capture
                 )
                 return await self.async_step_learn_off()
         else:
-            # First display — start listening
             if not await self._ensure_learn_listener():
                 return self.async_abort(reason="no_rx_gpio")
 
@@ -303,14 +398,13 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_learn_off(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Learn OFF code: listen for remote button press."""
+        """Learn OFF code."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
             captured = await self.hass.async_add_executor_job(
                 self._learn_rx.stop_capture
             )
-
             if not captured:
                 errors["base"] = "no_code_received"
                 await self.hass.async_add_executor_job(
@@ -320,11 +414,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 best = self._get_best_code(captured)
                 self._data[CONF_CODE_OFF] = best.code
                 _LOGGER.info("Learned OFF code=%s", best.code)
-
-                # Clean up learn listener
                 await self._cleanup_learn_listener()
 
-                # Try to decode as PT2262
                 on_decoded = decode_pt2262_code(self._data[CONF_CODE_ON])
                 off_decoded = decode_pt2262_code(self._data[CONF_CODE_OFF])
 
@@ -340,10 +431,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 else:
                     self._data[CONF_MODE] = MODE_DIRECT
 
-                unique_id = (
-                    f"rpi_rf_{self._data[CONF_GPIO]}"
-                    f"_{self._data[CONF_CODE_ON]}"
-                )
+                unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
 
@@ -376,18 +464,70 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
-    """Handle options flow for editing an existing RF switch."""
+    """Handle options flow for editing entries."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Manage switch options."""
+        """Route to correct options step based on entry type."""
         data = {**self.config_entry.data, **self.config_entry.options}
-        mode = data.get(CONF_MODE, MODE_DIRECT)
+        entry_type = data.get(CONF_ENTRY_TYPE)
 
+        if entry_type == ENTRY_TYPE_TX:
+            return await self.async_step_tx_options(user_input)
+        if entry_type == ENTRY_TYPE_RX:
+            return await self.async_step_rx_options(user_input)
+
+        mode = data.get(CONF_MODE, MODE_DIRECT)
         if mode == MODE_DIP:
             return await self.async_step_dip_options(user_input)
         return await self.async_step_direct_options(user_input)
+
+    async def async_step_tx_options(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Edit TX module GPIO."""
+        data = {**self.config_entry.data, **self.config_entry.options}
+
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="tx_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_GPIO,
+                        default=data.get(CONF_GPIO, DEFAULT_GPIO),
+                    ): vol.In(
+                        {pin: f"GPIO {pin}" for pin in GPIO_PINS}
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_rx_options(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Edit RX module GPIO."""
+        data = {**self.config_entry.data, **self.config_entry.options}
+
+        if user_input is not None:
+            return self.async_create_entry(title="", data=user_input)
+
+        return self.async_show_form(
+            step_id="rx_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_GPIO,
+                        default=data.get(CONF_GPIO, DEFAULT_RX_GPIO),
+                    ): vol.In(
+                        {pin: f"GPIO {pin}" for pin in GPIO_PINS}
+                    ),
+                }
+            ),
+        )
 
     async def async_step_dip_options(
         self, user_input: dict[str, Any] | None = None
@@ -483,7 +623,9 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                     ): int,
                     vol.Optional(
                         CONF_CODE_LENGTH,
-                        default=data.get(CONF_CODE_LENGTH, DEFAULT_CODE_LENGTH),
+                        default=data.get(
+                            CONF_CODE_LENGTH, DEFAULT_CODE_LENGTH
+                        ),
                     ): int,
                     vol.Required(
                         CONF_DEVICE_TYPE,

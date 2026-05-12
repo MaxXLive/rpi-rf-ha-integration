@@ -2,8 +2,8 @@
 
 DOMAIN = "rpi_rf_switch"
 
+CONF_ENTRY_TYPE = "entry_type"
 CONF_GPIO = "gpio"
-CONF_RX_GPIO = "rx_gpio"
 CONF_NAME = "name"
 CONF_MODE = "mode"
 CONF_SYSTEM_CODE = "system_code"
@@ -14,8 +14,11 @@ CONF_PROTOCOL = "protocol"
 CONF_PULSELENGTH = "pulselength"
 CONF_SIGNAL_REPETITIONS = "signal_repetitions"
 CONF_CODE_LENGTH = "code_length"
-
 CONF_DEVICE_TYPE = "device_type"
+
+ENTRY_TYPE_TX = "tx_module"
+ENTRY_TYPE_RX = "rx_module"
+ENTRY_TYPE_DEVICE = "device"
 
 MODE_DIP = "dip"
 MODE_DIRECT = "direct"

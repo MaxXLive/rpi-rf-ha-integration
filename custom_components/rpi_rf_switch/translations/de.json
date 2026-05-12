@@ -2,19 +2,38 @@
   "config": {
     "step": {
       "user": {
-        "title": "RF-Steckdose hinzufügen",
-        "description": "Konfiguriere eine 433 MHz Funksteckdose, die über einen GPIO-Sender gesteuert wird.",
+        "title": "Komponente hinzuf\u00fcgen",
+        "description": "Was m\u00f6chtest du einrichten?",
         "data": {
-          "name": "Gerätename",
-          "gpio": "TX GPIO Pin (BCM)",
-          "rx_gpio": "RX GPIO Pin (optional, für Empfänger)",
+          "choice": "Komponente"
+        }
+      },
+      "tx_module": {
+        "title": "Sender-Modul (TX)",
+        "description": "W\u00e4hle den GPIO-Pin, der mit dem DATA-Pin deines 433 MHz Senders verbunden ist.",
+        "data": {
+          "gpio": "TX GPIO Pin (BCM)"
+        }
+      },
+      "rx_module": {
+        "title": "Empf\u00e4nger-Modul (RX)",
+        "description": "W\u00e4hle den GPIO-Pin, der mit dem DATA-Pin deines 433 MHz Empf\u00e4ngers verbunden ist. Muss ein anderer Pin als TX sein.",
+        "data": {
+          "gpio": "RX GPIO Pin (BCM)"
+        }
+      },
+      "device": {
+        "title": "Funkger\u00e4t hinzuf\u00fcgen",
+        "description": "Konfiguriere ein neues 433 MHz Funkger\u00e4t.",
+        "data": {
+          "name": "Ger\u00e4tename",
           "mode": "Konfigurationsmodus",
-          "device_type": "Gerätetyp"
+          "device_type": "Ger\u00e4tetyp"
         }
       },
       "dip": {
         "title": "DIP-Schalter Konfiguration",
-        "description": "Gib die DIP-Schalter-Einstellungen deiner Steckdose ein. System-Code ist 5-stellig aus 0/1 (z.B. {example_code}). Unit-Code ist der Buchstabe (A–E).",
+        "description": "Gib die DIP-Schalter-Einstellungen deiner Steckdose ein. System-Code ist 5-stellig aus 0/1 (z.B. {example_code}). Unit-Code ist der Buchstabe (A\u2013E).",
         "data": {
           "system_code": "System-Code (z.B. 10101)",
           "unit_code": "Unit-Code",
@@ -24,38 +43,50 @@
       },
       "direct": {
         "title": "Direkte Code-Konfiguration",
-        "description": "Gib die dezimalen RF-Codes für EIN und AUS ein. Du kannst diese mit `rpi-rf_receive` auf der Kommandozeile herausfinden.",
+        "description": "Gib die dezimalen RF-Codes f\u00fcr EIN und AUS ein.",
         "data": {
           "code_on": "Code EIN (dezimal)",
           "code_off": "Code AUS (dezimal)",
           "protocol": "Protokoll",
-          "pulselength": "Pulslänge (µs)",
+          "pulselength": "Pulsl\u00e4nge (\u00b5s)",
           "signal_repetitions": "Signal-Wiederholungen",
-          "code_length": "Code-Länge (Bits)"
+          "code_length": "Code-L\u00e4nge (Bits)"
         }
       },
       "learn_on": {
         "title": "EIN-Code anlernen",
-        "description": "Drücke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung und klicke dann auf Absenden. Der Empfänger erkennt den Code automatisch."
+        "description": "Dr\u00fccke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung und klicke dann auf Absenden."
       },
       "learn_off": {
         "title": "AUS-Code anlernen",
-        "description": "Drücke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung und klicke dann auf Absenden."
+        "description": "Dr\u00fccke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung und klicke dann auf Absenden."
       }
     },
     "error": {
       "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101).",
-      "no_code_received": "Kein Code empfangen. Stelle sicher, dass der Empfänger richtig angeschlossen ist und versuche es erneut.",
-      "rx_gpio_required": "RX GPIO Pin wird für den Anlernmodus benötigt.",
-      "rx_same_as_tx": "RX GPIO muss ein anderer Pin sein als TX GPIO."
+      "no_code_received": "Kein Code empfangen. Stelle sicher, dass der Empf\u00e4nger richtig angeschlossen ist und versuche es erneut.",
+      "rx_same_as_tx": "RX GPIO muss ein anderer Pin sein als TX GPIO.",
+      "rx_required_for_learn": "Anlernmodus ben\u00f6tigt ein Empf\u00e4nger-Modul. Bitte f\u00fcge zuerst eins hinzu."
     },
     "abort": {
-      "already_configured": "Diese RF-Steckdose ist bereits konfiguriert.",
-      "no_rx_gpio": "Kein RX GPIO konfiguriert. Bitte setze einen RX GPIO Pin um den Anlernmodus zu nutzen."
+      "already_configured": "Diese Komponente ist bereits konfiguriert.",
+      "no_rx_gpio": "Kein Empf\u00e4nger-Modul konfiguriert. Bitte f\u00fcge zuerst eins hinzu um den Anlernmodus zu nutzen."
     }
   },
   "options": {
     "step": {
+      "tx_options": {
+        "title": "Sender-Modul bearbeiten",
+        "data": {
+          "gpio": "TX GPIO Pin (BCM)"
+        }
+      },
+      "rx_options": {
+        "title": "Empf\u00e4nger-Modul bearbeiten",
+        "data": {
+          "gpio": "RX GPIO Pin (BCM)"
+        }
+      },
       "dip_options": {
         "title": "DIP-Schalter bearbeiten",
         "data": {
@@ -63,7 +94,7 @@
           "unit_code": "Unit-Code",
           "protocol": "Protokoll",
           "signal_repetitions": "Signal-Wiederholungen",
-          "device_type": "Gerätetyp"
+          "device_type": "Ger\u00e4tetyp"
         }
       },
       "direct_options": {
@@ -72,10 +103,10 @@
           "code_on": "Code EIN (dezimal)",
           "code_off": "Code AUS (dezimal)",
           "protocol": "Protokoll",
-          "pulselength": "Pulslänge (µs)",
+          "pulselength": "Pulsl\u00e4nge (\u00b5s)",
           "signal_repetitions": "Signal-Wiederholungen",
-          "code_length": "Code-Länge (Bits)",
-          "device_type": "Gerätetyp"
+          "code_length": "Code-L\u00e4nge (Bits)",
+          "device_type": "Ger\u00e4tetyp"
         }
       }
     },

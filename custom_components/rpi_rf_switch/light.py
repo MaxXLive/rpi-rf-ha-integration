@@ -17,7 +17,7 @@ from .const import (
     CONF_CODE_OFF,
     CONF_CODE_ON,
     CONF_DEVICE_TYPE,
-    CONF_GPIO,
+    CONF_ENTRY_TYPE,
     CONF_NAME,
     CONF_PROTOCOL,
     CONF_PULSELENGTH,
@@ -28,6 +28,7 @@ from .const import (
     DEFAULT_SIGNAL_REPETITIONS,
     DEVICE_TYPE_LIGHT,
     DOMAIN,
+    ENTRY_TYPE_DEVICE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -40,16 +41,14 @@ async def async_setup_entry(
 ) -> None:
     """Set up Raspberry Pi RF lights from a config entry."""
     config = {**entry.data, **entry.options}
-    device_type = config.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE)
 
-    # Only handle light entities
-    if device_type != DEVICE_TYPE_LIGHT:
+    if config.get(CONF_ENTRY_TYPE) != ENTRY_TYPE_DEVICE:
         return
 
-    gpio = entry.data[CONF_GPIO]
-    rf_data = hass.data[DOMAIN][gpio]
+    if config.get(CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE) != DEVICE_TYPE_LIGHT:
+        return
 
-    async_add_entities([RpiRfLight(entry, rf_data)])
+    async_add_entities([RpiRfLight(entry)])
 
 
 class RpiRfLight(LightEntity, RestoreEntity):
@@ -60,11 +59,9 @@ class RpiRfLight(LightEntity, RestoreEntity):
     _attr_should_poll = False
     _attr_has_entity_name = True
 
-    def __init__(self, entry: ConfigEntry, rf_data: dict) -> None:
+    def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the RF light."""
         self._entry = entry
-        self._rfdevice = rf_data["device"]
-        self._lock = rf_data["lock"]
         self._rx_unregister: Callable[[], None] | None = None
 
         config = {**entry.data, **entry.options}
@@ -143,13 +140,18 @@ class RpiRfLight(LightEntity, RestoreEntity):
 
     def _send_code_sync(self, code: int) -> None:
         """Send an RF code (runs in executor thread)."""
+        tx = self.hass.data[DOMAIN].get("tx_module")
+        if not tx:
+            _LOGGER.error("TX module not available")
+            return
+
         rx_listener = self.hass.data[DOMAIN].get("rx_listener")
         if rx_listener:
             rx_listener.set_tx_guard()
 
-        with self._lock:
+        with tx["lock"]:
             for _ in range(self._signal_repetitions):
-                self._rfdevice.tx_code(
+                tx["device"].tx_code(
                     code,
                     self._protocol,
                     self._pulselength,
