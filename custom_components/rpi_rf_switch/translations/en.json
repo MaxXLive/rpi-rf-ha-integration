@@ -93,8 +93,8 @@
             "no_rx_gpio": "No receiver module configured. Please add one first to use learn mode."
         },
         "progress": {
-            "learn_on": "Press the ON button on your remote now... Listening for signals.",
-            "learn_off": "Press the OFF button on your remote now... Listening for signals."
+            "learn_on": "Press the ON button on your remote repeatedly (press, release, press — do not hold it down!).",
+            "learn_off": "Press the OFF button on your remote repeatedly (press, release, press — do not hold it down!)."
         }
     },
     "options": {

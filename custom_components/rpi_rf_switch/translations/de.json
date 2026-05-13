@@ -93,8 +93,8 @@
             "no_rx_gpio": "Kein Empfänger-Modul konfiguriert. Bitte füge zuerst eins hinzu um den Anlernmodus zu nutzen."
         },
         "progress": {
-            "learn_on": "Drücke jetzt den EIN-Knopf auf deiner Fernbedienung... Höre auf Signale.",
-            "learn_off": "Drücke jetzt den AUS-Knopf auf deiner Fernbedienung... Höre auf Signale."
+            "learn_on": "Drücke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!).",
+            "learn_off": "Drücke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!)."
         }
     },
     "options": {
