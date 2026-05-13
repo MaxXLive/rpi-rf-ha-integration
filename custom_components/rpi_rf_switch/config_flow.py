@@ -25,6 +25,7 @@ from .const import (
     CONF_NAME,
     CONF_PROTOCOL,
     CONF_PULSELENGTH,
+    CONF_RX_ENABLED,
     CONF_SIGNAL_REPETITIONS,
     CONF_SYSTEM_CODE,
     CONF_UNIT_CODE,
@@ -645,7 +646,7 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
     async def async_step_rx_options(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Edit RX module GPIO."""
+        """Edit RX module settings."""
         data = {**self.config_entry.data, **self.config_entry.options}
 
         if user_input is not None:
@@ -661,6 +662,10 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                     ): vol.In(
                         {pin: f"GPIO {pin}" for pin in GPIO_PINS}
                     ),
+                    vol.Required(
+                        CONF_RX_ENABLED,
+                        default=data.get(CONF_RX_ENABLED, True),
+                    ): bool,
                 }
             ),
         )

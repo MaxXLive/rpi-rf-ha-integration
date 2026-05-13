@@ -12,6 +12,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import (
     CONF_ENTRY_TYPE,
     CONF_GPIO,
+    CONF_RX_ENABLED,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
     ENTRY_TYPE_RX,
@@ -68,7 +69,14 @@ async def _setup_tx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _setup_rx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up the RX receiver module."""
-    gpio = entry.data[CONF_GPIO]
+    config = {**entry.data, **entry.options}
+    gpio = config[CONF_GPIO]
+    rx_enabled = config.get(CONF_RX_ENABLED, True)
+
+    if not rx_enabled:
+        _LOGGER.info("RX background monitoring disabled")
+        entry.async_on_unload(entry.add_update_listener(_async_update_listener))
+        return True
 
     try:
         from .receiver import RFReceiver

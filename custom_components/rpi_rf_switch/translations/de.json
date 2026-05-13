@@ -107,8 +107,10 @@
             },
             "rx_options": {
                 "title": "Empfänger-Modul bearbeiten",
+                "description": "Der Hintergrundempfang erkennt 433 MHz Signale (z.B. von einer Fernbedienung) und aktualisiert automatisch den Status deiner Geräte in Home Assistant.",
                 "data": {
-                    "gpio": "RX GPIO Pin (BCM)"
+                    "gpio": "RX GPIO Pin (BCM)",
+                    "rx_enabled": "Hintergrundempfang aktivieren"
                 }
             },
             "dip_options": {

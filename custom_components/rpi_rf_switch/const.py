@@ -15,6 +15,7 @@ CONF_PULSELENGTH = "pulselength"
 CONF_SIGNAL_REPETITIONS = "signal_repetitions"
 CONF_CODE_LENGTH = "code_length"
 CONF_DEVICE_TYPE = "device_type"
+CONF_RX_ENABLED = "rx_enabled"
 
 ENTRY_TYPE_TX = "tx_module"
 ENTRY_TYPE_RX = "rx_module"

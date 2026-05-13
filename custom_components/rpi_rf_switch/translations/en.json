@@ -107,8 +107,10 @@
             },
             "rx_options": {
                 "title": "Edit Receiver Module",
+                "description": "Background reception detects 433 MHz signals (e.g. from a remote control) and automatically updates your device states in Home Assistant.",
                 "data": {
-                    "gpio": "RX GPIO Pin (BCM)"
+                    "gpio": "RX GPIO Pin (BCM)",
+                    "rx_enabled": "Enable background reception"
                 }
             },
             "dip_options": {
