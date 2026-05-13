@@ -82,6 +82,7 @@ class RpiRfLight(LightEntity, RestoreEntity):
         self._code_length: int = config.get(
             CONF_CODE_LENGTH, DEFAULT_CODE_LENGTH
         )
+        self._tx_generation: int = 0
 
     async def async_added_to_hass(self) -> None:
         """Restore last known state and register RX callback."""
@@ -127,28 +128,40 @@ class RpiRfLight(LightEntity, RestoreEntity):
         """Turn the light on."""
         self._attr_is_on = True
         self.async_write_ha_state()
-        self.hass.async_add_executor_job(self._send_code_sync, self._code_on)
+        self._tx_generation += 1
+        gen = self._tx_generation
+        self.hass.async_add_executor_job(
+            self._send_code_sync, self._code_on, gen
+        )
 
     async def async_turn_off(self, **kwargs: Any) -> None:
         """Turn the light off."""
         self._attr_is_on = False
         self.async_write_ha_state()
-        self.hass.async_add_executor_job(self._send_code_sync, self._code_off)
+        self._tx_generation += 1
+        gen = self._tx_generation
+        self.hass.async_add_executor_job(
+            self._send_code_sync, self._code_off, gen
+        )
 
-    def _send_code_sync(self, code: int) -> None:
+    def _send_code_sync(self, code: int, generation: int) -> None:
         """Send an RF code (runs in executor thread)."""
         tx = self.hass.data[DOMAIN].get("tx_module")
         if not tx:
             _LOGGER.error("TX module not available")
             return
 
-        rx_listener = self.hass.data[DOMAIN].get("rx_listener")
-        if rx_listener:
-            rx_listener.set_tx_guard()
-            time.sleep(0.1)  # ensure polling loop has paused
+        with tx["lock"]:
+            if generation != self._tx_generation:
+                _LOGGER.debug("TX skipped (superseded): code=%s", code)
+                return
 
-        try:
-            with tx["lock"]:
+            rx_listener = self.hass.data[DOMAIN].get("rx_listener")
+            if rx_listener:
+                rx_listener.set_tx_guard()
+                time.sleep(0.1)
+
+            try:
                 for _ in range(self._signal_repetitions):
                     tx["device"].tx_code(
                         code,
@@ -156,6 +169,6 @@ class RpiRfLight(LightEntity, RestoreEntity):
                         self._pulselength,
                         self._code_length,
                     )
-        finally:
-            if rx_listener:
-                rx_listener.clear_tx_guard()
+            finally:
+                if rx_listener:
+                    rx_listener.clear_tx_guard()
