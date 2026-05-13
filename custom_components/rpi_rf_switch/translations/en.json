@@ -1,117 +1,141 @@
 {
-  "config": {
-    "step": {
-      "user": {
-        "title": "Add Component",
-        "description": "What would you like to set up?",
-        "data": {
-          "choice": "Component"
+    "config": {
+        "step": {
+            "user": {
+                "title": "Add Component",
+                "description": "What would you like to set up?",
+                "data": {
+                    "choice": "Component"
+                }
+            },
+            "tx_module": {
+                "title": "Transmitter Module (TX)",
+                "description": "Select the GPIO pin connected to your 433 MHz transmitter's DATA pin.",
+                "data": {
+                    "gpio": "TX GPIO Pin (BCM)"
+                }
+            },
+            "rx_module": {
+                "title": "Receiver Module (RX)",
+                "description": "Select the GPIO pin connected to your 433 MHz receiver's DATA pin. Must be different from the TX pin.",
+                "data": {
+                    "gpio": "RX GPIO Pin (BCM)"
+                }
+            },
+            "device": {
+                "title": "Add RF Device",
+                "description": "Configure a new 433 MHz radio device.",
+                "data": {
+                    "name": "Device Name",
+                    "mode": "Configuration Mode",
+                    "device_type": "Device Type"
+                }
+            },
+            "dip": {
+                "title": "DIP Switch Configuration",
+                "description": "Enter the DIP switch settings from your outlet. System Code is 5 digits of 0/1 (e.g. {example_code}). Unit Code is the button letter (A–E).",
+                "data": {
+                    "system_code": "System Code (e.g. 10101)",
+                    "unit_code": "Unit Code",
+                    "protocol": "Protocol",
+                    "signal_repetitions": "Signal Repetitions"
+                }
+            },
+            "direct": {
+                "title": "Direct Code Configuration",
+                "description": "Enter the decimal RF codes for ON and OFF.",
+                "data": {
+                    "code_on": "Code ON (decimal)",
+                    "code_off": "Code OFF (decimal)",
+                    "protocol": "Protocol",
+                    "pulselength": "Pulse Length (µs)",
+                    "signal_repetitions": "Signal Repetitions",
+                    "code_length": "Code Length (bits)"
+                }
+            },
+            "learn_on": {
+                "title": "Learn ON Code",
+                "description": "Press the ON button on your remote now. Listening for signals..."
+            },
+            "learn_off": {
+                "title": "Learn OFF Code",
+                "description": "Press the OFF button on your remote now. Listening for signals..."
+            },
+            "learn_on_retry": {
+                "title": "Learn ON Code",
+                "description": "No code was detected. Make sure the receiver is connected correctly. Press the ON button and try again."
+            },
+            "learn_off_retry": {
+                "title": "Learn OFF Code",
+                "description": "No code was detected. Press the OFF button and try again."
+            },
+            "learn_confirm": {
+                "title": "Confirm Learned Codes",
+                "description": "Codes learned!\n\nON: {code_on}\nOFF: {code_off}\nDIP Switch: {dip_info}\n\nReview the settings and confirm.",
+                "data": {
+                    "code_on": "Code ON (decimal)",
+                    "code_off": "Code OFF (decimal)",
+                    "protocol": "Protocol",
+                    "pulselength": "Pulse Length (µs)",
+                    "signal_repetitions": "Signal Repetitions",
+                    "device_type": "Device Type"
+                }
+            }
+        },
+        "error": {
+            "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101).",
+            "no_code_received": "No code received. Make sure the receiver is connected correctly and try again.",
+            "rx_same_as_tx": "RX GPIO must be different from TX GPIO.",
+            "rx_required_for_learn": "Learn mode requires a receiver module. Please add one first."
+        },
+        "abort": {
+            "already_configured": "This component is already configured.",
+            "no_rx_gpio": "No receiver module configured. Please add one first to use learn mode."
+        },
+        "progress": {
+            "learn_on": "Press the ON button on your remote now... Listening for signals.",
+            "learn_off": "Press the OFF button on your remote now... Listening for signals."
         }
-      },
-      "tx_module": {
-        "title": "Transmitter Module (TX)",
-        "description": "Select the GPIO pin connected to your 433 MHz transmitter's DATA pin.",
-        "data": {
-          "gpio": "TX GPIO Pin (BCM)"
-        }
-      },
-      "rx_module": {
-        "title": "Receiver Module (RX)",
-        "description": "Select the GPIO pin connected to your 433 MHz receiver's DATA pin. Must be different from the TX pin.",
-        "data": {
-          "gpio": "RX GPIO Pin (BCM)"
-        }
-      },
-      "device": {
-        "title": "Add RF Device",
-        "description": "Configure a new 433 MHz radio device.",
-        "data": {
-          "name": "Device Name",
-          "mode": "Configuration Mode",
-          "device_type": "Device Type"
-        }
-      },
-      "dip": {
-        "title": "DIP Switch Configuration",
-        "description": "Enter the DIP switch settings from your outlet. System Code is 5 digits of 0/1 (e.g. {example_code}). Unit Code is the button letter (A\u2013E).",
-        "data": {
-          "system_code": "System Code (e.g. 10101)",
-          "unit_code": "Unit Code",
-          "protocol": "Protocol",
-          "signal_repetitions": "Signal Repetitions"
-        }
-      },
-      "direct": {
-        "title": "Direct Code Configuration",
-        "description": "Enter the decimal RF codes for ON and OFF.",
-        "data": {
-          "code_on": "Code ON (decimal)",
-          "code_off": "Code OFF (decimal)",
-          "protocol": "Protocol",
-          "pulselength": "Pulse Length (\u00b5s)",
-          "signal_repetitions": "Signal Repetitions",
-          "code_length": "Code Length (bits)"
-        }
-      },
-      "learn_on": {
-        "title": "Learn ON Code",
-        "description": "Press the ON button on your remote repeatedly, then click Submit."
-      },
-      "learn_off": {
-        "title": "Learn OFF Code",
-        "description": "Now press the OFF button on your remote repeatedly, then click Submit."
-      }
     },
-    "error": {
-      "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101).",
-      "no_code_received": "No code received. Make sure the receiver is connected correctly and try again.",
-      "rx_same_as_tx": "RX GPIO must be different from TX GPIO.",
-      "rx_required_for_learn": "Learn mode requires a receiver module. Please add one first."
-    },
-    "abort": {
-      "already_configured": "This component is already configured.",
-      "no_rx_gpio": "No receiver module configured. Please add one first to use learn mode."
+    "options": {
+        "step": {
+            "tx_options": {
+                "title": "Edit Transmitter Module",
+                "data": {
+                    "gpio": "TX GPIO Pin (BCM)"
+                }
+            },
+            "rx_options": {
+                "title": "Edit Receiver Module",
+                "data": {
+                    "gpio": "RX GPIO Pin (BCM)"
+                }
+            },
+            "dip_options": {
+                "title": "Edit DIP Switch Settings",
+                "data": {
+                    "system_code": "System Code (e.g. 10101)",
+                    "unit_code": "Unit Code",
+                    "protocol": "Protocol",
+                    "signal_repetitions": "Signal Repetitions",
+                    "device_type": "Device Type"
+                }
+            },
+            "direct_options": {
+                "title": "Edit Code Settings",
+                "data": {
+                    "code_on": "Code ON (decimal)",
+                    "code_off": "Code OFF (decimal)",
+                    "protocol": "Protocol",
+                    "pulselength": "Pulse Length (µs)",
+                    "signal_repetitions": "Signal Repetitions",
+                    "code_length": "Code Length (bits)",
+                    "device_type": "Device Type"
+                }
+            }
+        },
+        "error": {
+            "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101)."
+        }
     }
-  },
-  "options": {
-    "step": {
-      "tx_options": {
-        "title": "Edit Transmitter Module",
-        "data": {
-          "gpio": "TX GPIO Pin (BCM)"
-        }
-      },
-      "rx_options": {
-        "title": "Edit Receiver Module",
-        "data": {
-          "gpio": "RX GPIO Pin (BCM)"
-        }
-      },
-      "dip_options": {
-        "title": "Edit DIP Switch Settings",
-        "data": {
-          "system_code": "System Code (e.g. 10101)",
-          "unit_code": "Unit Code",
-          "protocol": "Protocol",
-          "signal_repetitions": "Signal Repetitions",
-          "device_type": "Device Type"
-        }
-      },
-      "direct_options": {
-        "title": "Edit Code Settings",
-        "data": {
-          "code_on": "Code ON (decimal)",
-          "code_off": "Code OFF (decimal)",
-          "protocol": "Protocol",
-          "pulselength": "Pulse Length (\u00b5s)",
-          "signal_repetitions": "Signal Repetitions",
-          "code_length": "Code Length (bits)",
-          "device_type": "Device Type"
-        }
-      }
-    },
-    "error": {
-      "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101)."
-    }
-  }
 }

@@ -1,8 +1,10 @@
 """Config flow for Raspberry Pi 433 MHz RF Switch."""
 from __future__ import annotations
 
+import asyncio
 import logging
 import re
+import time
 from collections import Counter
 from typing import Any
 
@@ -66,6 +68,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._data: dict[str, Any] = {}
         self._learn_rx = None
         self._learn_rx_is_temp = False
+        self._learn_task: asyncio.Task | None = None
 
     def _get_entries_by_type(self, entry_type: str) -> list:
         """Get all config entries of a given type."""
@@ -346,7 +349,10 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return True
 
     async def _cleanup_learn_listener(self) -> None:
-        """Clean up the temporary learn listener."""
+        """Clean up the learn listener and cancel any running task."""
+        if self._learn_task is not None and not self._learn_task.done():
+            self._learn_task.cancel()
+        self._learn_task = None
         if self._learn_rx is not None:
             await self.hass.async_add_executor_job(
                 self._learn_rx.stop_capture
@@ -355,95 +361,225 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.hass.async_add_executor_job(self._learn_rx.stop)
             self._learn_rx = None
 
+    async def _async_wait_for_codes(
+        self, min_count: int = 5, timeout: float = 30.0
+    ):
+        """Wait until enough consistent RF codes are captured."""
+        deadline = time.monotonic() + timeout
+        while time.monotonic() < deadline:
+            snapshot = self._learn_rx.get_capture_snapshot()
+            if snapshot:
+                code_counts = Counter(c.code for c in snapshot)
+                best_code, best_count = code_counts.most_common(1)[0]
+                if best_count >= min_count:
+                    await self.hass.async_add_executor_job(
+                        self._learn_rx.stop_capture
+                    )
+                    return next(
+                        c for c in snapshot if c.code == best_code
+                    )
+            await asyncio.sleep(0.5)
+        await self.hass.async_add_executor_job(
+            self._learn_rx.stop_capture
+        )
+        raise asyncio.TimeoutError("No consistent code detected")
+
     async def async_step_learn_on(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Learn ON code."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            captured = await self.hass.async_add_executor_job(
-                self._learn_rx.stop_capture
-            )
-            if not captured:
-                errors["base"] = "no_code_received"
-                await self.hass.async_add_executor_job(
-                    self._learn_rx.start_capture
-                )
-            else:
-                best = self._get_best_code(captured)
-                self._data[CONF_CODE_ON] = best.code
-                self._data[CONF_PROTOCOL] = best.protocol
-                self._data[CONF_PULSELENGTH] = best.pulselength
-                _LOGGER.info(
-                    "Learned ON code=%s proto=%s pulse=%s",
-                    best.code,
-                    best.protocol,
-                    best.pulselength,
-                )
-                await self.hass.async_add_executor_job(
-                    self._learn_rx.start_capture
-                )
-                return await self.async_step_learn_off()
-        else:
+        """Learn ON code with auto-detection."""
+        if not self._learn_task:
             if not await self._ensure_learn_listener():
                 return self.async_abort(reason="no_rx_gpio")
 
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_codes()
+            )
+            return self.async_show_progress(
+                step_id="learn_on",
+                progress_action="learn_on",
+                progress_task=self._learn_task,
+            )
+
+        # Task completed
+        try:
+            best = self._learn_task.result()
+        except Exception:
+            self._learn_task = None
+            return self.async_show_progress_done(
+                next_step_id="learn_on_retry"
+            )
+
+        self._learn_task = None
+        self._data[CONF_CODE_ON] = best.code
+        self._data[CONF_PROTOCOL] = best.protocol
+        self._data[CONF_PULSELENGTH] = best.pulselength
+        _LOGGER.info(
+            "Learned ON code=%s proto=%s pulse=%s",
+            best.code,
+            best.protocol,
+            best.pulselength,
+        )
+        return self.async_show_progress_done(next_step_id="learn_off")
+
+    async def async_step_learn_on_retry(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Retry ON code learning after timeout."""
+        if user_input is not None:
+            await self.hass.async_add_executor_job(
+                self._learn_rx.start_capture
+            )
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_codes()
+            )
+            return self.async_show_progress(
+                step_id="learn_on",
+                progress_action="learn_on",
+                progress_task=self._learn_task,
+            )
+
         return self.async_show_form(
-            step_id="learn_on",
+            step_id="learn_on_retry",
             data_schema=vol.Schema({}),
-            errors=errors,
+            errors={"base": "no_code_received"},
         )
 
     async def async_step_learn_off(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Learn OFF code."""
-        errors: dict[str, str] = {}
-
-        if user_input is not None:
-            captured = await self.hass.async_add_executor_job(
-                self._learn_rx.stop_capture
+        """Learn OFF code with auto-detection."""
+        if not self._learn_task:
+            await self.hass.async_add_executor_job(
+                self._learn_rx.start_capture
             )
-            if not captured:
-                errors["base"] = "no_code_received"
-                await self.hass.async_add_executor_job(
-                    self._learn_rx.start_capture
-                )
-            else:
-                best = self._get_best_code(captured)
-                self._data[CONF_CODE_OFF] = best.code
-                _LOGGER.info("Learned OFF code=%s", best.code)
-                await self._cleanup_learn_listener()
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_codes()
+            )
+            return self.async_show_progress(
+                step_id="learn_off",
+                progress_action="learn_off",
+                progress_task=self._learn_task,
+            )
 
-                on_decoded = decode_pt2262_code(self._data[CONF_CODE_ON])
-                off_decoded = decode_pt2262_code(self._data[CONF_CODE_OFF])
+        # Task completed
+        try:
+            best = self._learn_task.result()
+        except Exception:
+            self._learn_task = None
+            return self.async_show_progress_done(
+                next_step_id="learn_off_retry"
+            )
 
-                if on_decoded and off_decoded:
-                    self._data[CONF_SYSTEM_CODE] = on_decoded["system_code"]
-                    self._data[CONF_UNIT_CODE] = on_decoded["unit_code"]
-                    self._data[CONF_MODE] = MODE_DIP
-                    _LOGGER.info(
-                        "PT2262 detected: system=%s unit=%s",
-                        on_decoded["system_code"],
-                        on_decoded["unit_code"],
-                    )
-                else:
-                    self._data[CONF_MODE] = MODE_DIRECT
+        self._learn_task = None
+        self._data[CONF_CODE_OFF] = best.code
+        _LOGGER.info("Learned OFF code=%s", best.code)
+        await self._cleanup_learn_listener()
+        return self.async_show_progress_done(
+            next_step_id="learn_confirm"
+        )
 
-                unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
-                await self.async_set_unique_id(unique_id)
-                self._abort_if_unique_id_configured()
-
-                return self.async_create_entry(
-                    title=self._data[CONF_NAME],
-                    data=self._data,
-                )
+    async def async_step_learn_off_retry(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Retry OFF code learning after timeout."""
+        if user_input is not None:
+            await self.hass.async_add_executor_job(
+                self._learn_rx.start_capture
+            )
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_codes()
+            )
+            return self.async_show_progress(
+                step_id="learn_off",
+                progress_action="learn_off",
+                progress_task=self._learn_task,
+            )
 
         return self.async_show_form(
-            step_id="learn_off",
+            step_id="learn_off_retry",
             data_schema=vol.Schema({}),
-            errors=errors,
+            errors={"base": "no_code_received"},
+        )
+
+    async def async_step_learn_confirm(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show learned codes with DIP decode for confirmation."""
+        if user_input is not None:
+            self._data.update(user_input)
+
+            on_decoded = decode_pt2262_code(self._data[CONF_CODE_ON])
+            off_decoded = decode_pt2262_code(self._data[CONF_CODE_OFF])
+
+            if on_decoded and off_decoded:
+                self._data[CONF_SYSTEM_CODE] = on_decoded["system_code"]
+                self._data[CONF_UNIT_CODE] = on_decoded["unit_code"]
+                self._data[CONF_MODE] = MODE_DIP
+                _LOGGER.info(
+                    "PT2262 detected: system=%s unit=%s",
+                    on_decoded["system_code"],
+                    on_decoded["unit_code"],
+                )
+            else:
+                self._data[CONF_MODE] = MODE_DIRECT
+
+            unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured()
+
+            return self.async_create_entry(
+                title=self._data[CONF_NAME],
+                data=self._data,
+            )
+
+        code_on = self._data[CONF_CODE_ON]
+        code_off = self._data[CONF_CODE_OFF]
+
+        on_decoded = decode_pt2262_code(code_on)
+        off_decoded = decode_pt2262_code(code_off)
+
+        if on_decoded and off_decoded:
+            dip_info = (
+                f"System: {on_decoded['system_code']}, "
+                f"Unit: {on_decoded['unit_code']}"
+            )
+        else:
+            dip_info = "—"
+
+        return self.async_show_form(
+            step_id="learn_confirm",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(CONF_CODE_ON, default=code_on): int,
+                    vol.Required(CONF_CODE_OFF, default=code_off): int,
+                    vol.Optional(
+                        CONF_PROTOCOL,
+                        default=self._data.get(
+                            CONF_PROTOCOL, DEFAULT_PROTOCOL
+                        ),
+                    ): vol.In(PROTOCOL_OPTIONS),
+                    vol.Optional(
+                        CONF_PULSELENGTH,
+                        default=self._data.get(CONF_PULSELENGTH),
+                    ): int,
+                    vol.Optional(
+                        CONF_SIGNAL_REPETITIONS,
+                        default=DEFAULT_SIGNAL_REPETITIONS,
+                    ): int,
+                    vol.Required(
+                        CONF_DEVICE_TYPE,
+                        default=self._data.get(
+                            CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+                        ),
+                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                }
+            ),
+            description_placeholders={
+                "code_on": str(code_on),
+                "code_off": str(code_off),
+                "dip_info": dip_info,
+            },
         )
 
     @staticmethod

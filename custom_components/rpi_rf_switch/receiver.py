@@ -87,6 +87,7 @@ class RFReceiver:
         self._callbacks: list[Callable[[int, int, int], None]] = []
         self._callbacks_lock = threading.Lock()
         self._tx_guard_until: float = 0.0
+        self._tx_active = False
         self._capturing = False
         self._capture_buffer: list[ReceivedCode] = []
         self._recent_codes: list[tuple[float, int]] = []
@@ -127,7 +128,18 @@ class RFReceiver:
         _LOGGER.info("RF receiver stopped on GPIO %s", self._gpio)
 
     def set_tx_guard(self) -> None:
-        """Ignore received codes for a short period (call before TX)."""
+        """Pause polling and ignore codes during TX.
+
+        The polling loop releases the GIL infrequently (~1.4ms).
+        This starves rpi-rf's TX timing (350µs pulses) of GIL time,
+        corrupting RF signals. Pausing the loop during TX prevents this.
+        """
+        self._tx_active = True
+        self._tx_guard_until = 0.0
+
+    def clear_tx_guard(self) -> None:
+        """Resume polling after TX with a short cooldown."""
+        self._tx_active = False
         self._tx_guard_until = time.monotonic() + TX_GUARD_SECONDS
 
     def start_capture(self) -> None:
@@ -141,6 +153,10 @@ class RFReceiver:
         result = list(self._capture_buffer)
         self._capture_buffer.clear()
         return result
+
+    def get_capture_snapshot(self) -> list[ReceivedCode]:
+        """Return a copy of the current capture buffer without stopping."""
+        return list(self._capture_buffer)
 
     def register_callback(
         self, callback: Callable[[int, int, int], None]
@@ -180,6 +196,15 @@ class RFReceiver:
         idle_loops = 0
 
         while self._running:
+            # Pause during TX to prevent GIL contention with RF timing
+            if self._tx_active or time.monotonic() < self._tx_guard_until:
+                time.sleep(0.05)
+                change_count = 0
+                last_val = gpio_input(gpio_pin)
+                last_time_ns = time.perf_counter_ns()
+                idle_loops = 0
+                continue
+
             val = gpio_input(gpio_pin)
             if val == last_val:
                 idle_loops += 1
@@ -268,7 +293,7 @@ class RFReceiver:
         now = time.monotonic()
 
         # Skip self-received codes during/after TX
-        if now < self._tx_guard_until:
+        if self._tx_active or now < self._tx_guard_until:
             _LOGGER.debug("RX ignored (TX guard): code=%s", code)
             return
 

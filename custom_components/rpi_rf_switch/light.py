@@ -145,11 +145,15 @@ class RpiRfLight(LightEntity, RestoreEntity):
         if rx_listener:
             rx_listener.set_tx_guard()
 
-        with tx["lock"]:
-            for _ in range(self._signal_repetitions):
-                tx["device"].tx_code(
-                    code,
-                    self._protocol,
-                    self._pulselength,
-                    self._code_length,
-                )
+        try:
+            with tx["lock"]:
+                for _ in range(self._signal_repetitions):
+                    tx["device"].tx_code(
+                        code,
+                        self._protocol,
+                        self._pulselength,
+                        self._code_length,
+                    )
+        finally:
+            if rx_listener:
+                rx_listener.clear_tx_guard()

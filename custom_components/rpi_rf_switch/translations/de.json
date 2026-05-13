@@ -1,117 +1,141 @@
 {
-  "config": {
-    "step": {
-      "user": {
-        "title": "Komponente hinzuf\u00fcgen",
-        "description": "Was m\u00f6chtest du einrichten?",
-        "data": {
-          "choice": "Komponente"
+    "config": {
+        "step": {
+            "user": {
+                "title": "Komponente hinzufügen",
+                "description": "Was möchtest du einrichten?",
+                "data": {
+                    "choice": "Komponente"
+                }
+            },
+            "tx_module": {
+                "title": "Sender-Modul (TX)",
+                "description": "Wähle den GPIO-Pin, der mit dem DATA-Pin deines 433 MHz Senders verbunden ist.",
+                "data": {
+                    "gpio": "TX GPIO Pin (BCM)"
+                }
+            },
+            "rx_module": {
+                "title": "Empfänger-Modul (RX)",
+                "description": "Wähle den GPIO-Pin, der mit dem DATA-Pin deines 433 MHz Empfängers verbunden ist. Muss ein anderer Pin als TX sein.",
+                "data": {
+                    "gpio": "RX GPIO Pin (BCM)"
+                }
+            },
+            "device": {
+                "title": "Funkgerät hinzufügen",
+                "description": "Konfiguriere ein neues 433 MHz Funkgerät.",
+                "data": {
+                    "name": "Gerätename",
+                    "mode": "Konfigurationsmodus",
+                    "device_type": "Gerätetyp"
+                }
+            },
+            "dip": {
+                "title": "DIP-Schalter Konfiguration",
+                "description": "Gib die DIP-Schalter-Einstellungen deiner Steckdose ein. System-Code ist 5-stellig aus 0/1 (z.B. {example_code}). Unit-Code ist der Buchstabe (A–E).",
+                "data": {
+                    "system_code": "System-Code (z.B. 10101)",
+                    "unit_code": "Unit-Code",
+                    "protocol": "Protokoll",
+                    "signal_repetitions": "Signal-Wiederholungen"
+                }
+            },
+            "direct": {
+                "title": "Direkte Code-Konfiguration",
+                "description": "Gib die dezimalen RF-Codes für EIN und AUS ein.",
+                "data": {
+                    "code_on": "Code EIN (dezimal)",
+                    "code_off": "Code AUS (dezimal)",
+                    "protocol": "Protokoll",
+                    "pulselength": "Pulslänge (µs)",
+                    "signal_repetitions": "Signal-Wiederholungen",
+                    "code_length": "Code-Länge (Bits)"
+                }
+            },
+            "learn_on": {
+                "title": "EIN-Code anlernen",
+                "description": "Drücke jetzt den EIN-Knopf auf deiner Fernbedienung. Höre auf Signale..."
+            },
+            "learn_off": {
+                "title": "AUS-Code anlernen",
+                "description": "Drücke jetzt den AUS-Knopf auf deiner Fernbedienung. Höre auf Signale..."
+            },
+            "learn_on_retry": {
+                "title": "EIN-Code anlernen",
+                "description": "Kein Code erkannt. Stelle sicher, dass der Empfänger richtig angeschlossen ist. Drücke den EIN-Knopf und versuche es erneut."
+            },
+            "learn_off_retry": {
+                "title": "AUS-Code anlernen",
+                "description": "Kein Code erkannt. Drücke den AUS-Knopf und versuche es erneut."
+            },
+            "learn_confirm": {
+                "title": "Angelernte Codes bestätigen",
+                "description": "Codes angelernt!\n\nEIN: {code_on}\nAUS: {code_off}\nDIP-Schalter: {dip_info}\n\nÜberprüfe die Einstellungen und bestätige.",
+                "data": {
+                    "code_on": "Code EIN (dezimal)",
+                    "code_off": "Code AUS (dezimal)",
+                    "protocol": "Protokoll",
+                    "pulselength": "Pulslänge (µs)",
+                    "signal_repetitions": "Signal-Wiederholungen",
+                    "device_type": "Gerätetyp"
+                }
+            }
+        },
+        "error": {
+            "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101).",
+            "no_code_received": "Kein Code empfangen. Stelle sicher, dass der Empfänger richtig angeschlossen ist und versuche es erneut.",
+            "rx_same_as_tx": "RX GPIO muss ein anderer Pin sein als TX GPIO.",
+            "rx_required_for_learn": "Anlernmodus benötigt ein Empfänger-Modul. Bitte füge zuerst eins hinzu."
+        },
+        "abort": {
+            "already_configured": "Diese Komponente ist bereits konfiguriert.",
+            "no_rx_gpio": "Kein Empfänger-Modul konfiguriert. Bitte füge zuerst eins hinzu um den Anlernmodus zu nutzen."
+        },
+        "progress": {
+            "learn_on": "Drücke jetzt den EIN-Knopf auf deiner Fernbedienung... Höre auf Signale.",
+            "learn_off": "Drücke jetzt den AUS-Knopf auf deiner Fernbedienung... Höre auf Signale."
         }
-      },
-      "tx_module": {
-        "title": "Sender-Modul (TX)",
-        "description": "W\u00e4hle den GPIO-Pin, der mit dem DATA-Pin deines 433 MHz Senders verbunden ist.",
-        "data": {
-          "gpio": "TX GPIO Pin (BCM)"
-        }
-      },
-      "rx_module": {
-        "title": "Empf\u00e4nger-Modul (RX)",
-        "description": "W\u00e4hle den GPIO-Pin, der mit dem DATA-Pin deines 433 MHz Empf\u00e4ngers verbunden ist. Muss ein anderer Pin als TX sein.",
-        "data": {
-          "gpio": "RX GPIO Pin (BCM)"
-        }
-      },
-      "device": {
-        "title": "Funkger\u00e4t hinzuf\u00fcgen",
-        "description": "Konfiguriere ein neues 433 MHz Funkger\u00e4t.",
-        "data": {
-          "name": "Ger\u00e4tename",
-          "mode": "Konfigurationsmodus",
-          "device_type": "Ger\u00e4tetyp"
-        }
-      },
-      "dip": {
-        "title": "DIP-Schalter Konfiguration",
-        "description": "Gib die DIP-Schalter-Einstellungen deiner Steckdose ein. System-Code ist 5-stellig aus 0/1 (z.B. {example_code}). Unit-Code ist der Buchstabe (A\u2013E).",
-        "data": {
-          "system_code": "System-Code (z.B. 10101)",
-          "unit_code": "Unit-Code",
-          "protocol": "Protokoll",
-          "signal_repetitions": "Signal-Wiederholungen"
-        }
-      },
-      "direct": {
-        "title": "Direkte Code-Konfiguration",
-        "description": "Gib die dezimalen RF-Codes f\u00fcr EIN und AUS ein.",
-        "data": {
-          "code_on": "Code EIN (dezimal)",
-          "code_off": "Code AUS (dezimal)",
-          "protocol": "Protokoll",
-          "pulselength": "Pulsl\u00e4nge (\u00b5s)",
-          "signal_repetitions": "Signal-Wiederholungen",
-          "code_length": "Code-L\u00e4nge (Bits)"
-        }
-      },
-      "learn_on": {
-        "title": "EIN-Code anlernen",
-        "description": "Dr\u00fccke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung und klicke dann auf Absenden."
-      },
-      "learn_off": {
-        "title": "AUS-Code anlernen",
-        "description": "Dr\u00fccke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung und klicke dann auf Absenden."
-      }
     },
-    "error": {
-      "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101).",
-      "no_code_received": "Kein Code empfangen. Stelle sicher, dass der Empf\u00e4nger richtig angeschlossen ist und versuche es erneut.",
-      "rx_same_as_tx": "RX GPIO muss ein anderer Pin sein als TX GPIO.",
-      "rx_required_for_learn": "Anlernmodus ben\u00f6tigt ein Empf\u00e4nger-Modul. Bitte f\u00fcge zuerst eins hinzu."
-    },
-    "abort": {
-      "already_configured": "Diese Komponente ist bereits konfiguriert.",
-      "no_rx_gpio": "Kein Empf\u00e4nger-Modul konfiguriert. Bitte f\u00fcge zuerst eins hinzu um den Anlernmodus zu nutzen."
+    "options": {
+        "step": {
+            "tx_options": {
+                "title": "Sender-Modul bearbeiten",
+                "data": {
+                    "gpio": "TX GPIO Pin (BCM)"
+                }
+            },
+            "rx_options": {
+                "title": "Empfänger-Modul bearbeiten",
+                "data": {
+                    "gpio": "RX GPIO Pin (BCM)"
+                }
+            },
+            "dip_options": {
+                "title": "DIP-Schalter bearbeiten",
+                "data": {
+                    "system_code": "System-Code (z.B. 10101)",
+                    "unit_code": "Unit-Code",
+                    "protocol": "Protokoll",
+                    "signal_repetitions": "Signal-Wiederholungen",
+                    "device_type": "Gerätetyp"
+                }
+            },
+            "direct_options": {
+                "title": "Code-Einstellungen bearbeiten",
+                "data": {
+                    "code_on": "Code EIN (dezimal)",
+                    "code_off": "Code AUS (dezimal)",
+                    "protocol": "Protokoll",
+                    "pulselength": "Pulslänge (µs)",
+                    "signal_repetitions": "Signal-Wiederholungen",
+                    "code_length": "Code-Länge (Bits)",
+                    "device_type": "Gerätetyp"
+                }
+            }
+        },
+        "error": {
+            "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101)."
+        }
     }
-  },
-  "options": {
-    "step": {
-      "tx_options": {
-        "title": "Sender-Modul bearbeiten",
-        "data": {
-          "gpio": "TX GPIO Pin (BCM)"
-        }
-      },
-      "rx_options": {
-        "title": "Empf\u00e4nger-Modul bearbeiten",
-        "data": {
-          "gpio": "RX GPIO Pin (BCM)"
-        }
-      },
-      "dip_options": {
-        "title": "DIP-Schalter bearbeiten",
-        "data": {
-          "system_code": "System-Code (z.B. 10101)",
-          "unit_code": "Unit-Code",
-          "protocol": "Protokoll",
-          "signal_repetitions": "Signal-Wiederholungen",
-          "device_type": "Ger\u00e4tetyp"
-        }
-      },
-      "direct_options": {
-        "title": "Code-Einstellungen bearbeiten",
-        "data": {
-          "code_on": "Code EIN (dezimal)",
-          "code_off": "Code AUS (dezimal)",
-          "protocol": "Protokoll",
-          "pulselength": "Pulsl\u00e4nge (\u00b5s)",
-          "signal_repetitions": "Signal-Wiederholungen",
-          "code_length": "Code-L\u00e4nge (Bits)",
-          "device_type": "Ger\u00e4tetyp"
-        }
-      }
-    },
-    "error": {
-      "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101)."
-    }
-  }
 }
