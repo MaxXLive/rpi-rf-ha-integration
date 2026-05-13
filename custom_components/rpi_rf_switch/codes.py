@@ -36,9 +36,9 @@ def calc_pt2262_code(system_code: str, unit_code: str, command: bool) -> int:
     for i in range(5):
         tribits.append("0" if i == unit_index else "F")
 
-    # Command: ON='FF', OFF='F0'
+    # Command: ON='0F', OFF='F0'
     if command:
-        tribits.extend(["F", "F"])
+        tribits.extend(["0", "F"])
     else:
         tribits.extend(["F", "0"])
 
@@ -78,9 +78,9 @@ def decode_pt2262_code(code: int) -> dict | None:
     if unit_tribits.count("0") != 1 or any(t == "1" for t in unit_tribits):
         return None
 
-    # Command (tribits 10-11): 'FF' = ON, 'F0' = OFF
+    # Command (tribits 10-11): '0F' = ON, 'F0' = OFF
     cmd = tribits[10:12]
-    if cmd == ["F", "F"]:
+    if cmd == ["0", "F"]:
         command = True
     elif cmd == ["F", "0"]:
         command = False

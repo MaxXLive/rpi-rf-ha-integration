@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections.abc import Callable
 from typing import Any
 
@@ -144,6 +145,7 @@ class RpiRfLight(LightEntity, RestoreEntity):
         rx_listener = self.hass.data[DOMAIN].get("rx_listener")
         if rx_listener:
             rx_listener.set_tx_guard()
+            time.sleep(0.1)  # ensure polling loop has paused
 
         try:
             with tx["lock"]:
