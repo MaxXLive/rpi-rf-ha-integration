@@ -25,6 +25,7 @@ from .const import (
     CONF_NAME,
     CONF_PROTOCOL,
     CONF_PULSELENGTH,
+    CONF_RX_DEBUG,
     CONF_RX_ENABLED,
     CONF_SIGNAL_REPETITIONS,
     CONF_SYSTEM_CODE,
@@ -254,10 +255,19 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._data[CONF_SYSTEM_CODE] = system_code
                 self._data[CONF_CODE_ON] = code_on
                 self._data[CONF_CODE_OFF] = code_off
+                self._data.setdefault(CONF_PROTOCOL, DEFAULT_PROTOCOL)
+                self._data.setdefault(
+                    CONF_SIGNAL_REPETITIONS, DEFAULT_SIGNAL_REPETITIONS
+                )
 
                 unique_id = f"rpi_rf_{system_code}_{unit_code}"
                 await self.async_set_unique_id(unique_id)
                 self._abort_if_unique_id_configured()
+
+                _LOGGER.info(
+                    "DIP device created: system=%s unit=%s code_on=%s code_off=%s",
+                    system_code, unit_code, code_on, code_off,
+                )
 
                 return self.async_create_entry(
                     title=self._data[CONF_NAME],
@@ -664,6 +674,10 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                         CONF_RX_ENABLED,
                         default=data.get(CONF_RX_ENABLED, True),
                     ): bool,
+                    vol.Required(
+                        CONF_RX_DEBUG,
+                        default=data.get(CONF_RX_DEBUG, False),
+                    ): bool,
                 }
             ),
         )
@@ -691,6 +705,10 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                     CONF_CODE_OFF: code_off,
                 }
                 return self.async_create_entry(title="", data=result)
+
+        # Show calculated codes in description
+        code_on = data.get(CONF_CODE_ON, "?")
+        code_off = data.get(CONF_CODE_OFF, "?")
 
         return self.async_show_form(
             step_id="dip_options",
@@ -724,6 +742,10 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                 }
             ),
             errors=errors,
+            description_placeholders={
+                "code_on": str(code_on),
+                "code_off": str(code_off),
+            },
         )
 
     async def async_step_direct_options(

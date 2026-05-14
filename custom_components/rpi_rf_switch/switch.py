@@ -97,6 +97,15 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         rx_listener = self.hass.data[DOMAIN].get("rx_listener")
         if rx_listener:
             rx_listener.register_callback(self._on_rf_received)
+            _LOGGER.info(
+                "RX callback registered for %s (ON=%s OFF=%s)",
+                self._device_name, self._code_on, self._code_off,
+            )
+        else:
+            _LOGGER.warning(
+                "No RX listener available for %s - live monitoring disabled",
+                self._device_name,
+            )
 
     async def async_will_remove_from_hass(self) -> None:
         """Unregister RX callback on removal."""
@@ -108,6 +117,10 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         self, code: int, protocol: int, pulselength: int
     ) -> None:
         """Handle received RF code (called from RX thread)."""
+        _LOGGER.debug(
+            "RX callback for %s: received code=%s (expecting ON=%s OFF=%s), proto=%s, pulse=%s",
+            self._device_name, code, self._code_on, self._code_off, protocol, pulselength,
+        )
         if code == self._code_on and not self._attr_is_on:
             _LOGGER.info(
                 "RX matched ON for %s (code=%s)", self._device_name, code

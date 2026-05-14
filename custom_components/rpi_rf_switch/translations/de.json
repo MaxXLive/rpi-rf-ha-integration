@@ -110,11 +110,13 @@
                 "description": "Der Hintergrundempfang erkennt 433 MHz Signale (z.B. von einer Fernbedienung) und aktualisiert automatisch den Status deiner Geräte in Home Assistant.",
                 "data": {
                     "gpio": "RX GPIO Pin (BCM)",
-                    "rx_enabled": "Hintergrundempfang aktivieren"
+                    "rx_enabled": "Hintergrundempfang aktivieren",
+                    "rx_debug": "Debug-Modus (Events für empfangene Codes)"
                 }
             },
             "dip_options": {
                 "title": "DIP-Schalter bearbeiten",
+                "description": "Berechnete Codes: EIN={code_on}, AUS={code_off}",
                 "data": {
                     "system_code": "System-Code (z.B. 10101)",
                     "unit_code": "Unit-Code",

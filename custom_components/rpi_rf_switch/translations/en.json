@@ -110,11 +110,13 @@
                 "description": "Background reception detects 433 MHz signals (e.g. from a remote control) and automatically updates your device states in Home Assistant.",
                 "data": {
                     "gpio": "RX GPIO Pin (BCM)",
-                    "rx_enabled": "Enable background reception"
+                    "rx_enabled": "Enable background reception",
+                    "rx_debug": "Debug mode (fire events for received codes)"
                 }
             },
             "dip_options": {
                 "title": "Edit DIP Switch Settings",
+                "description": "Calculated codes: ON={code_on}, OFF={code_off}",
                 "data": {
                     "system_code": "System Code (e.g. 10101)",
                     "unit_code": "Unit Code",

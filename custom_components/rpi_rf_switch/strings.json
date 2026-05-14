@@ -84,11 +84,14 @@
       "rx_options": {
         "title": "Edit Receiver Module",
         "data": {
-          "gpio": "RX GPIO Pin (BCM)"
+          "gpio": "RX GPIO Pin (BCM)",
+          "rx_enabled": "Background Monitoring",
+          "rx_debug": "Debug Mode (fire events for received codes)"
         }
       },
       "dip_options": {
         "title": "Edit DIP Switch Settings",
+        "description": "Calculated codes: ON={code_on}, OFF={code_off}",
         "data": {
           "system_code": "System Code (e.g. 10101)",
           "unit_code": "Unit Code",

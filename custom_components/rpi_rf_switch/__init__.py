@@ -11,6 +11,7 @@ from homeassistant.exceptions import ConfigEntryNotReady
 from .const import (
     CONF_ENTRY_TYPE,
     CONF_GPIO,
+    CONF_RX_DEBUG,
     CONF_RX_ENABLED,
     DOMAIN,
     ENTRY_TYPE_DEVICE,
@@ -70,6 +71,7 @@ async def _setup_rx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     config = {**entry.data, **entry.options}
     gpio = config[CONF_GPIO]
     rx_enabled = config.get(CONF_RX_ENABLED, True)
+    rx_debug = config.get(CONF_RX_DEBUG, False)
 
     if not rx_enabled:
         _LOGGER.info("RX background monitoring disabled")
@@ -81,8 +83,29 @@ async def _setup_rx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
         receiver = RFReceiver(gpio=gpio)
         await hass.async_add_executor_job(receiver.enable)
+
+        if rx_debug:
+            def _debug_rx_callback(code: int, protocol: int, pulselength: int) -> None:
+                """Log and fire event for each received RF code."""
+                _LOGGER.info(
+                    "RX DEBUG: code=%s, protocol=%s, pulselength=%s",
+                    code, protocol, pulselength,
+                )
+                hass.bus.fire(
+                    f"{DOMAIN}_code_received",
+                    {
+                        "code": code,
+                        "protocol": protocol,
+                        "pulselength": pulselength,
+                    },
+                )
+
+            receiver.register_callback(_debug_rx_callback)
+            _LOGGER.info("RX module initialized on GPIO %s (DEBUG mode active)", gpio)
+        else:
+            _LOGGER.info("RX module initialized on GPIO %s", gpio)
+
         hass.data[DOMAIN]["rx_listener"] = receiver
-        _LOGGER.info("RX module initialized on GPIO %s", gpio)
     except Exception as err:
         _LOGGER.warning("Failed to start RX on GPIO %s: %s", gpio, err)
 

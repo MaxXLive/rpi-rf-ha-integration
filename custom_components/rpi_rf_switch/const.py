@@ -16,6 +16,7 @@ CONF_SIGNAL_REPETITIONS = "signal_repetitions"
 CONF_CODE_LENGTH = "code_length"
 CONF_DEVICE_TYPE = "device_type"
 CONF_RX_ENABLED = "rx_enabled"
+CONF_RX_DEBUG = "rx_debug"
 
 ENTRY_TYPE_TX = "tx_module"
 ENTRY_TYPE_RX = "rx_module"
