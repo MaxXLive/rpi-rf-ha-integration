@@ -525,6 +525,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._data[CONF_SYSTEM_CODE] = on_decoded["system_code"]
                 self._data[CONF_UNIT_CODE] = on_decoded["unit_code"]
                 self._data[CONF_MODE] = MODE_DIP
+                unique_id = f"rpi_rf_{on_decoded['system_code']}_{on_decoded['unit_code']}"
                 _LOGGER.info(
                     "PT2262 detected: system=%s unit=%s",
                     on_decoded["system_code"],
@@ -532,8 +533,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 )
             else:
                 self._data[CONF_MODE] = MODE_DIRECT
+                unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
 
-            unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
             await self.async_set_unique_id(unique_id)
             self._abort_if_unique_id_configured()
 
