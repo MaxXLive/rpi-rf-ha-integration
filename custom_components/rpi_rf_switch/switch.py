@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 import time
-from collections.abc import Callable
 
 from homeassistant.components.switch import SwitchDeviceClass, SwitchEntity
 from homeassistant.config_entries import ConfigEntry
@@ -62,7 +61,6 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
     def __init__(self, entry: ConfigEntry) -> None:
         """Initialize the RF switch."""
         self._entry = entry
-        self._rx_unregister: Callable[[], None] | None = None
 
         config = {**entry.data, **entry.options}
 
@@ -98,15 +96,13 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
 
         rx_listener = self.hass.data[DOMAIN].get("rx_listener")
         if rx_listener:
-            self._rx_unregister = rx_listener.register_callback(
-                self._on_rf_received
-            )
+            rx_listener.register_callback(self._on_rf_received)
 
     async def async_will_remove_from_hass(self) -> None:
         """Unregister RX callback on removal."""
-        if self._rx_unregister:
-            self._rx_unregister()
-            self._rx_unregister = None
+        rx_listener = self.hass.data[DOMAIN].get("rx_listener")
+        if rx_listener:
+            rx_listener.unregister_callback(self._on_rf_received)
 
     def _on_rf_received(
         self, code: int, protocol: int, pulselength: int
@@ -180,13 +176,13 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
                 time.sleep(0.1)
 
             try:
-                for _ in range(self._signal_repetitions):
-                    tx["device"].tx_code(
-                        code,
-                        self._protocol,
-                        self._pulselength,
-                        self._code_length,
-                    )
+                tx["device"].send(
+                    code=code,
+                    protocol=self._protocol,
+                    pulselength=self._pulselength,
+                    repeat=self._signal_repetitions,
+                    length=self._code_length,
+                )
             finally:
                 if rx_listener:
                     rx_listener.clear_tx_guard()

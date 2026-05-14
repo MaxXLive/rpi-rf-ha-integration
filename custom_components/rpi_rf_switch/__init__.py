@@ -1,7 +1,6 @@
 """Raspberry Pi 433 MHz RF Switch integration for Home Assistant."""
 from __future__ import annotations
 
-import importlib
 import logging
 from threading import RLock
 
@@ -45,11 +44,10 @@ async def _setup_tx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     gpio = entry.data[CONF_GPIO]
 
     try:
-        rpi_rf = await hass.async_add_executor_job(
-            importlib.import_module, "rpi_rf"
-        )
-        rfdevice = await hass.async_add_executor_job(rpi_rf.RFDevice, gpio)
-        await hass.async_add_executor_job(rfdevice.enable_tx)
+        from rpi_rf_gpiod import RFTransmitter
+
+        tx = RFTransmitter(gpio=gpio)
+        await hass.async_add_executor_job(tx.enable)
     except Exception as err:
         _LOGGER.error("Failed to initialize TX on GPIO %s: %s", gpio, err)
         raise ConfigEntryNotReady(
@@ -58,7 +56,7 @@ async def _setup_tx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data[DOMAIN]["tx_module"] = {
         "gpio": gpio,
-        "device": rfdevice,
+        "device": tx,
         "lock": RLock(),
     }
     _LOGGER.info("TX module initialized on GPIO %s", gpio)
@@ -79,10 +77,10 @@ async def _setup_rx_module(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         return True
 
     try:
-        from .receiver import RFReceiver
+        from rpi_rf_gpiod import RFReceiver
 
-        receiver = RFReceiver(gpio)
-        await hass.async_add_executor_job(receiver.start)
+        receiver = RFReceiver(gpio=gpio)
+        await hass.async_add_executor_job(receiver.enable)
         hass.data[DOMAIN]["rx_listener"] = receiver
         _LOGGER.info("RX module initialized on GPIO %s", gpio)
     except Exception as err:
@@ -113,14 +111,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if entry_type == ENTRY_TYPE_TX:
         tx = hass.data[DOMAIN].pop("tx_module", None)
         if tx:
-            await hass.async_add_executor_job(tx["device"].disable_tx)
+            await hass.async_add_executor_job(tx["device"].disable)
             _LOGGER.info("TX module stopped")
         return True
 
     if entry_type == ENTRY_TYPE_RX:
         rx = hass.data[DOMAIN].pop("rx_listener", None)
         if rx:
-            await hass.async_add_executor_job(rx.stop)
+            await hass.async_add_executor_job(rx.disable)
             _LOGGER.info("RX module stopped")
         return True
 

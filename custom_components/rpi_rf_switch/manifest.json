@@ -6,6 +6,6 @@
   "documentation": "https://github.com/",
   "integration_type": "device",
   "iot_class": "assumed_state",
-  "requirements": ["RPi.GPIO==0.7.1", "rpi-rf==0.9.7"],
-  "version": "2.2.2"
+  "requirements": ["rpi-rf-gpiod2==1.0.0"],
+  "version": "3.0.0"
 }

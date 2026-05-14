@@ -340,10 +340,10 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not rx_entries:
                 return False
             rx_gpio = rx_entries[0].data[CONF_GPIO]
-            from .receiver import RFReceiver
+            from rpi_rf_gpiod import RFReceiver
 
-            self._learn_rx = RFReceiver(rx_gpio)
-            await self.hass.async_add_executor_job(self._learn_rx.start)
+            self._learn_rx = RFReceiver(gpio=rx_gpio)
+            await self.hass.async_add_executor_job(self._learn_rx.enable)
             self._learn_rx_is_temp = True
 
         await self.hass.async_add_executor_job(self._learn_rx.start_capture)
@@ -359,7 +359,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._learn_rx.stop_capture
             )
             if self._learn_rx_is_temp:
-                await self.hass.async_add_executor_job(self._learn_rx.stop)
+                await self.hass.async_add_executor_job(self._learn_rx.disable)
             self._learn_rx = None
 
     async def _async_wait_for_codes(
@@ -370,15 +370,14 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         while time.monotonic() < deadline:
             snapshot = self._learn_rx.get_capture_snapshot()
             if snapshot:
-                code_counts = Counter(c.code for c in snapshot)
+                code_counts = Counter(c[0] for c in snapshot)
                 best_code, best_count = code_counts.most_common(1)[0]
                 if best_count >= min_count:
                     await self.hass.async_add_executor_job(
                         self._learn_rx.stop_capture
                     )
-                    return next(
-                        c for c in snapshot if c.code == best_code
-                    )
+                    best = next(c for c in snapshot if c[0] == best_code)
+                    return best
             await asyncio.sleep(0.5)
         await self.hass.async_add_executor_job(
             self._learn_rx.stop_capture
@@ -412,14 +411,13 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._learn_task = None
-        self._data[CONF_CODE_ON] = best.code
-        self._data[CONF_PROTOCOL] = best.protocol
-        self._data[CONF_PULSELENGTH] = best.pulselength
+        code, protocol, pulselength = best
+        self._data[CONF_CODE_ON] = code
+        self._data[CONF_PROTOCOL] = protocol
+        self._data[CONF_PULSELENGTH] = pulselength
         _LOGGER.info(
             "Learned ON code=%s proto=%s pulse=%s",
-            best.code,
-            best.protocol,
-            best.pulselength,
+            code, protocol, pulselength,
         )
         return self.async_show_progress_done(next_step_id="learn_off")
 
@@ -473,8 +471,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._learn_task = None
-        self._data[CONF_CODE_OFF] = best.code
-        _LOGGER.info("Learned OFF code=%s", best.code)
+        self._data[CONF_CODE_OFF] = best[0]
+        _LOGGER.info("Learned OFF code=%s", best[0])
         await self._cleanup_learn_listener()
         return self.async_show_progress_done(
             next_step_id="learn_confirm"
@@ -586,9 +584,9 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     @staticmethod
     def _get_best_code(captured):
         """Find the most frequently received code from the capture buffer."""
-        code_counts = Counter(c.code for c in captured)
+        code_counts = Counter(c[0] for c in captured)
         best_code_val = code_counts.most_common(1)[0][0]
-        return next(c for c in captured if c.code == best_code_val)
+        return next(c for c in captured if c[0] == best_code_val)
 
     # --- Options flow ---
 
