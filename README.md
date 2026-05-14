@@ -23,8 +23,8 @@ Home Assistant custom integration for 433 MHz radio outlets via a GPIO transmitt
 
 ## Requirements
 
-- Raspberry Pi (3B, 3B+, 4, Zero W — **not** Pi 5)
-- Home Assistant OS on the Pi
+- Raspberry Pi (3B, 3B+, 4, 5, Zero W)
+- Home Assistant OS on the Pi (Bookworm / kernel 6.x+)
 - 433 MHz transmitter module (3-pin: VCC, DATA, GND + antenna)
 - 433 MHz receiver module (optional, for learn mode + state sync)
 
@@ -151,16 +151,17 @@ Simply add the integration again and select "RF Device" — each device is creat
 
 ## Technical Details
 
-- Based on the Python library [`rpi-rf`](https://github.com/milaq/rpi-rf)
+- Uses [`rpi-rf-gpiod2`](https://pypi.org/project/rpi-rf-gpiod2/) — a modern GPIO library using `gpiod` v2 (kernel character device)
+- **Works on all Pi models** including Pi 5 (auto-detects `/dev/gpiochip0` vs `/dev/gpiochip4`)
+- **Works on kernel 6.12+** where `RPi.GPIO` and `lgpio` edge detection are broken
 - **Modular architecture**: TX module, RX module, and devices are separate config entries
 - TX module: one per integration, manages GPIO transmitter (thread-safe via RLock)
-- RX module: optional, manages GPIO receiver (background listener thread)
+- RX module: optional, uses kernel edge-detection with nanosecond timestamps (no CPU-intensive polling)
 - Devices look up the TX module dynamically at send time (no stale references)
 - State restore: remembers last sent state across restarts
 - Passive state sync via background RX listener (optional)
 - TX guard: 0.5s after transmitting, received codes are ignored to prevent self-reception
 - PT2262 reverse decoding: learned codes are automatically analyzed for system/unit structure
-- GPIO access via `RPi.GPIO` (works on Pi 3/4/Zero, **not** on Pi 5)
 
 ## Alexa Integration
 
@@ -184,7 +185,7 @@ If you use the DIY Alexa Smart Home integration (Lambda-based, without Nabu Casa
 
 ## Roadmap
 
-- [ ] **Raspberry Pi 5 support** — `RPi.GPIO` doesn't support the Pi 5's RP1 chip. Potential fix: use `rpi-lgpio` as drop-in replacement. Needs testing on Pi 5 hardware.
+- [x] ~~**Raspberry Pi 5 support**~~ — Solved! v3.0.0 uses `gpiod` which works on all Pi models including Pi 5.
 
 ## License
 
@@ -213,8 +214,8 @@ Home Assistant Custom Integration für 433 MHz Funksteckdosen über einen GPIO-S
 
 ## Voraussetzungen
 
-- Raspberry Pi (3B, 3B+, 4, Zero W — **nicht** Pi 5)
-- Home Assistant OS auf dem Pi
+- Raspberry Pi (3B, 3B+, 4, 5, Zero W)
+- Home Assistant OS auf dem Pi (Bookworm / Kernel 6.x+)
 - 433 MHz Sender-Modul (3-Pin: VCC, DATA, GND + Antenne)
 - 433 MHz Empfänger-Modul (optional, für Anlernmodus + State Sync)
 
@@ -341,16 +342,17 @@ Einfach die Integration nochmal hinzufügen und "Funkgerät" wählen — jedes G
 
 ## Technische Details
 
-- Basiert auf der Python-Bibliothek [`rpi-rf`](https://github.com/milaq/rpi-rf)
+- Nutzt [`rpi-rf-gpiod2`](https://pypi.org/project/rpi-rf-gpiod2/) — eine moderne GPIO-Bibliothek basierend auf `gpiod` v2 (Kernel Character Device)
+- **Funktioniert auf allen Pi-Modellen** inkl. Pi 5 (erkennt automatisch `/dev/gpiochip0` vs `/dev/gpiochip4`)
+- **Funktioniert auf Kernel 6.12+** wo `RPi.GPIO` und `lgpio` Edge-Detection kaputt sind
 - **Modulare Architektur**: TX-Modul, RX-Modul und Geräte sind getrennte Konfigurationseinträge
 - TX-Modul: einmal pro Integration, verwaltet GPIO-Sender (thread-safe via RLock)
-- RX-Modul: optional, verwaltet GPIO-Empfänger (Hintergrund-Listener-Thread)
+- RX-Modul: optional, nutzt Kernel Edge-Detection mit Nanosekunden-Timestamps (kein CPU-intensives Polling)
 - Geräte suchen das TX-Modul dynamisch beim Senden (keine veralteten Referenzen)
 - State Restore: Merkt sich den letzten Zustand über Neustarts
 - Passiver State Sync über Hintergrund-RX-Listener (optional)
 - TX Guard: 0,5s nach dem Senden werden empfangene Codes ignoriert um Selbstempfang zu verhindern
 - PT2262 Rückwärts-Dekodierung: Angelernte Codes werden automatisch auf System-/Unit-Struktur analysiert
-- GPIO-Zugriff über `RPi.GPIO` (funktioniert auf Pi 3/4/Zero, **nicht** auf Pi 5)
 
 ## Alexa Integration
 
@@ -374,7 +376,7 @@ Wenn du die DIY Alexa Smart Home Integration (Lambda-basiert, ohne Nabu Casa) nu
 
 ## Roadmap
 
-- [ ] **Raspberry Pi 5 Unterstützung** — `RPi.GPIO` unterstützt den RP1-Chip des Pi 5 nicht. Möglicher Fix: `rpi-lgpio` als Drop-in Ersatz. Muss auf Pi 5 Hardware getestet werden.
+- [x] ~~**Raspberry Pi 5 Unterstützung**~~ — Gelöst! v3.0.0 nutzt `gpiod`, das auf allen Pi-Modellen inkl. Pi 5 funktioniert.
 
 ## Lizenz
 
