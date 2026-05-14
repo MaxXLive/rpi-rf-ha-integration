@@ -126,6 +126,14 @@ async def _async_update_listener(
     """Reload entry when options change."""
     await hass.config_entries.async_reload(entry.entry_id)
 
+    # When RX module is reloaded, also reload all device entries
+    # so they re-register their callbacks on the new listener.
+    entry_type = entry.data.get(CONF_ENTRY_TYPE)
+    if entry_type == ENTRY_TYPE_RX:
+        for other_entry in hass.config_entries.async_entries(DOMAIN):
+            if other_entry.data.get(CONF_ENTRY_TYPE) == ENTRY_TYPE_DEVICE:
+                await hass.config_entries.async_reload(other_entry.entry_id)
+
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
