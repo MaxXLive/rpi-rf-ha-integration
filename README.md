@@ -13,13 +13,16 @@ Home Assistant custom integration for 433 MHz radio outlets via a GPIO transmitt
 - ✅ **Device types** — Outlet, Light, or Switch (proper HA entity categories)
 - ✅ **DIP switch mode** — Enter system code (5 switches) + unit code (A–E), codes are calculated automatically (PT2262)
 - ✅ **Direct code mode** — Enter decimal RF codes manually (e.g. sniffed via `rpi-rf_receive`)
-- ✅ **Learn mode** — Press buttons on your remote, codes are detected automatically (requires RX module)
+- ✅ **Learn mode (simple)** — Press buttons on your remote, the most frequent code is detected (requires RX module)
+- ✅ **Learn mode (rotating)** — For remotes that cycle through multiple codes (e.g. SilverCrest/Lidl), detects all codes automatically or with manual count
 - ✅ **Passive state sync** — RX module monitors RF traffic and updates state when someone uses the physical remote
 - ✅ **TX guard** — Prevents self-reception when transmitting (0.5s ignore window)
+- ✅ **Debug mode** — Fire HA events for every received code (enable in RX options)
 - ✅ **Editable after setup** — Change settings via "Configure" in the UI
 - ✅ **State restore** — Remembers last switch state across HA restarts
-- ✅ **German & English** — UI fully localized
+- ✅ **German & English** — UI fully localized (dropdowns, progress text, etc.)
 - ✅ **Shared GPIO** — Multiple devices share one TX module (thread-safe)
+- ✅ **6 protocols** — Including Protocol 4 (380µs) for SilverCrest/Lidl remotes
 
 ## Requirements
 
@@ -124,11 +127,25 @@ If you know the decimal codes (e.g. sniffed via `rpi-rf_receive`):
 
 If you have added a receiver module:
 
-1. Select **"Anlernen"** as mode when adding a device
-2. Press the **ON** button on your remote repeatedly, then click Submit
-3. Press the **OFF** button on your remote repeatedly, then click Submit
+#### Simple Codes (Brennenstuhl, Mumbi, etc.)
+
+1. Select **"Learn (Simple Codes)"** as mode when adding a device
+2. Press the **ON** button on your remote repeatedly (~5 times)
+3. Press the **OFF** button on your remote repeatedly (~5 times)
 4. The codes, protocol, and pulse length are detected automatically
 5. If PT2262 encoding is detected, the system/unit codes are also extracted
+
+#### Rotating Codes (SilverCrest, Lidl, etc.)
+
+Some remotes cycle through multiple codes per button press. For these:
+
+1. Select **"Learn (Rotating Codes)"** as mode
+2. Choose detection method:
+   - **Auto-detect count** — the system figures out how many codes exist
+   - **Manual count** — you specify the number of ON/OFF codes (e.g. 4 each)
+3. Press the **ON** button ~20 times (slowly, one press per second)
+4. Press the **OFF** button ~20 times
+5. All codes are stored — every button press is recognized in passive monitoring
 
 ### Passive State Sync (requires RX module)
 
@@ -186,6 +203,7 @@ If you use the DIY Alexa Smart Home integration (Lambda-based, without Nabu Casa
 ## Roadmap
 
 - [x] ~~**Raspberry Pi 5 support**~~ — Solved! v3.0.0 uses `gpiod` which works on all Pi models including Pi 5.
+- [x] ~~**Rotating code support**~~ — v3.4.0+ detects and stores all codes from rotating remotes (SilverCrest/Lidl).
 
 ## License
 
@@ -204,13 +222,16 @@ Home Assistant Custom Integration für 433 MHz Funksteckdosen über einen GPIO-S
 - ✅ **Gerätetypen** — Steckdose, Licht oder Schalter (richtige HA Entity-Kategorien)
 - ✅ **DIP-Schalter Modus** — System-Code (5 Schalter) + Unit-Code (A–E) eingeben, Codes werden automatisch berechnet (PT2262)
 - ✅ **Direkter Code Modus** — Dezimale RF-Codes manuell eingeben (z.B. per `rpi-rf_receive` gesnifft)
-- ✅ **Anlernmodus** — Fernbedienung drücken, Codes werden automatisch erkannt (benötigt RX-Modul)
+- ✅ **Anlernmodus (einfach)** — Fernbedienung drücken, häufigster Code wird erkannt (benötigt RX-Modul)
+- ✅ **Anlernmodus (rotierend)** — Für Fernbedienungen mit wechselnden Codes (z.B. SilverCrest/Lidl), erkennt alle Codes automatisch oder mit manueller Anzahl
 - ✅ **Passiver State Sync** — RX-Modul überwacht den Funkverkehr und aktualisiert den Zustand wenn jemand die Fernbedienung benutzt
 - ✅ **TX Guard** — Verhindert Selbstempfang beim Senden (0,5s Ignorier-Fenster)
+- ✅ **Debug-Modus** — HA Events für jeden empfangenen Code (in RX-Optionen aktivierbar)
 - ✅ **Nachträglich bearbeitbar** — Einstellungen über "Konfigurieren" in der UI ändern
 - ✅ **State Restore** — Merkt sich den letzten Schaltzustand über HA-Neustarts
-- ✅ **Deutsch & Englisch** — UI komplett lokalisiert
+- ✅ **Deutsch & Englisch** — UI komplett lokalisiert (Dropdowns, Fortschritts-Texte, etc.)
 - ✅ **Shared GPIO** — Mehrere Geräte teilen sich ein TX-Modul (thread-safe)
+- ✅ **6 Protokolle** — Inkl. Protokoll 4 (380µs) für SilverCrest/Lidl Fernbedienungen
 
 ## Voraussetzungen
 
@@ -315,11 +336,25 @@ Wenn du die dezimalen Codes kennst (z.B. per `rpi-rf_receive` gesnifft):
 
 Wenn ein Empfänger-Modul hinzugefügt wurde:
 
-1. Wähle **"Anlernen"** als Modus beim Gerät hinzufügen
-2. Drücke wiederholt den **EIN**-Knopf auf der Fernbedienung, dann klicke Absenden
-3. Drücke wiederholt den **AUS**-Knopf auf der Fernbedienung, dann klicke Absenden
+#### Einfache Codes (Brennenstuhl, Mumbi, etc.)
+
+1. Wähle **"Anlernen (einfache Codes)"** als Modus beim Gerät hinzufügen
+2. Drücke wiederholt den **EIN**-Knopf auf der Fernbedienung (~5×)
+3. Drücke wiederholt den **AUS**-Knopf auf der Fernbedienung (~5×)
 4. Codes, Protokoll und Pulslänge werden automatisch erkannt
 5. Falls PT2262-Kodierung erkannt wird, werden auch System-/Unit-Codes extrahiert
+
+#### Rotierende Codes (SilverCrest, Lidl, etc.)
+
+Manche Fernbedienungen senden bei jedem Tastendruck einen anderen Code aus einer festen Gruppe:
+
+1. Wähle **"Anlernen (Rotierende Codes)"** als Modus
+2. Wähle die Erkennungsmethode:
+   - **Automatisch erkennen** — das System ermittelt die Anzahl der Codes
+   - **Manuell festlegen** — du gibst die Anzahl EIN-/AUS-Codes an (z.B. je 4)
+3. Drücke den **EIN**-Knopf ~20× (langsam, ein Druck pro Sekunde)
+4. Drücke den **AUS**-Knopf ~20×
+5. Alle Codes werden gespeichert — jeder Tastendruck wird im Hintergrundempfang erkannt
 
 ### Passiver State Sync (benötigt RX-Modul)
 
@@ -377,6 +412,7 @@ Wenn du die DIY Alexa Smart Home Integration (Lambda-basiert, ohne Nabu Casa) nu
 ## Roadmap
 
 - [x] ~~**Raspberry Pi 5 Unterstützung**~~ — Gelöst! v3.0.0 nutzt `gpiod`, das auf allen Pi-Modellen inkl. Pi 5 funktioniert.
+- [x] ~~**Rotierende Codes**~~ — v3.4.0+ erkennt und speichert alle Codes von rotierenden Fernbedienungen (SilverCrest/Lidl).
 
 ## Lizenz
 
