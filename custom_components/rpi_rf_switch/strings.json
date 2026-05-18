@@ -109,6 +109,12 @@
       "rx_same_as_tx": "RX GPIO must be different from TX GPIO.",
       "rx_required_for_learn": "Learn mode requires a receiver module. Please add one first."
     },
+    "progress": {
+      "learn_on": "Press the ON button on your remote repeatedly (press, release, press — do not hold it down!).",
+      "learn_off": "Press the OFF button on your remote repeatedly (press, release, press — do not hold it down!).",
+      "rotating_learn_on": "Press the ON button repeatedly (~20 times, slowly). The system is collecting all different codes.",
+      "rotating_learn_off": "Press the OFF button repeatedly (~20 times, slowly). The system is collecting all different codes."
+    },
     "abort": {
       "already_configured": "This component is already configured.",
       "no_rx_gpio": "No receiver module configured. Please add one first to use learn mode."
