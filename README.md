@@ -162,7 +162,7 @@ Simply add the integration again and select "RF Device" — each device is creat
 | 1   | 350 µs      | PT2262 (default, most outlets) |
 | 2   | 650 µs      |             |
 | 3   | 100 µs      |             |
-| 4   | 380 µs      |             |
+| 4   | 380 µs      | SilverCrest / Lidl (rotating codes) |
 | 5   | 500 µs      |             |
 | 6   | 200 µs      | HT6P20B / NEXA |
 
@@ -371,7 +371,7 @@ Einfach die Integration nochmal hinzufügen und "Funkgerät" wählen — jedes G
 | 1   | 350 µs    | PT2262 (Standard, die meisten Steckdosen) |
 | 2   | 650 µs    |              |
 | 3   | 100 µs    |              |
-| 4   | 380 µs    |              |
+| 4   | 380 µs    | SilverCrest / Lidl (rotierende Codes) |
 | 5   | 500 µs    |              |
 | 6   | 200 µs    | HT6P20B / NEXA |
 
