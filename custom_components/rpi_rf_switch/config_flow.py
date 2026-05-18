@@ -12,6 +12,11 @@ import voluptuous as vol
 
 from homeassistant import config_entries
 from homeassistant.data_entry_flow import FlowResult
+from homeassistant.helpers.selector import (
+    SelectOptionDict,
+    SelectSelector,
+    SelectSelectorConfig,
+)
 
 from .codes import calc_pt2262_code, decode_pt2262_code
 from .const import (
@@ -56,11 +61,13 @@ _LOGGER = logging.getLogger(__name__)
 GPIO_PINS = list(range(2, 28))
 PROTOCOL_OPTIONS = {1: "1", 2: "2", 3: "3", 4: "4", 5: "5", 6: "6 (HT6P20B)"}
 UNIT_OPTIONS = {"A": "A", "B": "B", "C": "C", "D": "D", "E": "E"}
-DEVICE_TYPE_OPTIONS = {
-    DEVICE_TYPE_OUTLET: "Steckdose / Outlet",
-    DEVICE_TYPE_LIGHT: "Licht / Light",
-    DEVICE_TYPE_SWITCH: "Schalter / Switch",
-}
+
+DEVICE_TYPE_SELECTOR = SelectSelector(
+    SelectSelectorConfig(
+        options=[DEVICE_TYPE_OUTLET, DEVICE_TYPE_LIGHT, DEVICE_TYPE_SWITCH],
+        translation_key="device_type",
+    )
+)
 
 
 class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
@@ -220,23 +227,24 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_rotating_setup()
                 return await self.async_step_direct()
 
-        modes = {
-            MODE_DIP: "DIP-Schalter (System + Unit Code)",
-            MODE_DIRECT: "Direkter Code (Dezimal)",
-        }
+        mode_options = [MODE_DIP, MODE_DIRECT]
         if has_rx:
-            modes[MODE_LEARN] = "Anlernen (einfache Codes)"
-            modes[MODE_LEARN_ROTATING] = "Anlernen (Rotierende Codes)"
+            mode_options.extend([MODE_LEARN, MODE_LEARN_ROTATING])
 
         return self.async_show_form(
             step_id="device",
             data_schema=vol.Schema(
                 {
                     vol.Required(CONF_NAME): str,
-                    vol.Required(CONF_MODE, default=MODE_DIP): vol.In(modes),
+                    vol.Required(CONF_MODE, default=MODE_DIP): SelectSelector(
+                        SelectSelectorConfig(
+                            options=mode_options,
+                            translation_key="mode",
+                        )
+                    ),
                     vol.Required(
                         CONF_DEVICE_TYPE, default=DEFAULT_DEVICE_TYPE
-                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                    ): DEVICE_TYPE_SELECTOR,
                 }
             ),
             errors=errors,
@@ -837,7 +845,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=self._data.get(
                             CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
                         ),
-                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                    ): DEVICE_TYPE_SELECTOR,
                 }
             ),
             description_placeholders={
@@ -895,7 +903,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         default=self._data.get(
                             CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
                         ),
-                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                    ): DEVICE_TYPE_SELECTOR,
                 }
             ),
             description_placeholders={
@@ -1050,7 +1058,7 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                         default=data.get(
                             CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
                         ),
-                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                    ): DEVICE_TYPE_SELECTOR,
                 }
             ),
             errors=errors,
@@ -1105,7 +1113,7 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                         default=data.get(
                             CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
                         ),
-                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                    ): DEVICE_TYPE_SELECTOR,
                 }
             ),
         )
@@ -1149,7 +1157,7 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                         default=data.get(
                             CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
                         ),
-                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                    ): DEVICE_TYPE_SELECTOR,
                 }
             ),
             description_placeholders={

@@ -184,5 +184,22 @@
         "error": {
             "invalid_system_code": "System Code must be exactly 5 digits of 0 and 1 (e.g. 10101)."
         }
+    },
+    "selector": {
+        "mode": {
+            "options": {
+                "dip": "DIP Switch (System + Unit Code)",
+                "direct": "Direct Code (Decimal)",
+                "learn": "Learn (Simple Codes)",
+                "learn_rotating": "Learn (Rotating Codes)"
+            }
+        },
+        "device_type": {
+            "options": {
+                "outlet": "Outlet",
+                "light": "Light",
+                "switch": "Switch"
+            }
+        }
     }
 }
