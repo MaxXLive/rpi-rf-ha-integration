@@ -422,11 +422,29 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         last_confirmed_count = 0
         stable_since: float | None = None
         STABLE_DURATION = 5.0
+        dominant_proto = None
+        dominant_pulse = None
 
         while time.monotonic() < deadline:
             snapshot = self._learn_rx.get_capture_snapshot()
             if snapshot:
-                code_counts = Counter(c[0] for c in snapshot)
+                # Determine dominant protocol/pulselength from most common code
+                if dominant_proto is None:
+                    proto_counts = Counter(
+                        (c[1], c[2]) for c in snapshot
+                    )
+                    (dominant_proto, dominant_pulse), _ = proto_counts.most_common(1)[0]
+
+                # Filter to only codes matching dominant protocol+pulselength
+                filtered = [
+                    c for c in snapshot
+                    if c[1] == dominant_proto and c[2] == dominant_pulse
+                ]
+                if not filtered:
+                    await asyncio.sleep(0.5)
+                    continue
+
+                code_counts = Counter(c[0] for c in filtered)
                 # Confirmed codes: appeared ≥3 times
                 confirmed = {c: n for c, n in code_counts.items() if n >= 3}
                 # Emerging codes: appeared ≥2 times (might reach 3 soon)
@@ -440,7 +458,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             confirmed, key=confirmed.get, reverse=True
                         )[:expected_count]
                         codes = [
-                            next(c for c in snapshot if c[0] == cv)
+                            next(c for c in filtered if c[0] == cv)
                             for cv in top_codes
                         ]
                         await self.hass.async_add_executor_job(
@@ -461,7 +479,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                             elif stable_since is not None:
                                 if time.monotonic() - stable_since >= STABLE_DURATION:
                                     codes = [
-                                        next(c for c in snapshot if c[0] == cv)
+                                        next(c for c in filtered if c[0] == cv)
                                         for cv in confirmed
                                     ]
                                     await self.hass.async_add_executor_job(
