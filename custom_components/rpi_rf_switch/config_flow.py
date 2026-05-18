@@ -385,41 +385,61 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
           - is_rotating: True if multiple distinct codes detected
           - total_received: total number of code receptions
 
-        Rotation detection:
-          Tracks how many unique codes appear (each ≥2 times).
-          Once the count stabilizes for 3 seconds (no new codes joining),
-          all rotating codes have been found. This avoids stopping too
-          early when only a subset of rotating codes has been captured.
+        Detection strategy:
+          1. Single code: one code dominates (>50% of total) with ≥min_count hits
+          2. Rotating: multiple codes each ≥3 times, no single code dominant,
+             count stabilized for 5 seconds, and no emerging codes still climbing
+
+        The dominance check (>50%) prevents noise codes from triggering
+        false rotating detection on single-code devices.
         """
         deadline = time.monotonic() + timeout
         last_rotating_count = 0
         rotating_stable_since: float | None = None
-        STABLE_DURATION = 3.0
+        STABLE_DURATION = 5.0
 
         while time.monotonic() < deadline:
             snapshot = self._learn_rx.get_capture_snapshot()
             if snapshot:
                 code_counts = Counter(c[0] for c in snapshot)
+                total = sum(code_counts.values())
+                best_code, best_count = code_counts.most_common(1)[0]
 
-                # Codes appearing ≥2 times (filters single-occurrence noise)
-                frequent = {c: n for c, n in code_counts.items() if n >= 2}
+                # --- Single code: one code dominates >50% of all receptions ---
+                if best_count >= min_count and best_count / total > 0.5:
+                    await self.hass.async_add_executor_job(
+                        self._learn_rx.stop_capture
+                    )
+                    best = next(c for c in snapshot if c[0] == best_code)
+                    return {
+                        "codes": [best],
+                        "is_rotating": False,
+                        "total_received": total,
+                    }
 
-                if len(frequent) >= 2:
-                    # Multiple codes detected — possible rotation
-                    # Check if count of unique codes has stabilized
-                    if len(frequent) != last_rotating_count:
-                        last_rotating_count = len(frequent)
-                        rotating_stable_since = time.monotonic()
-                    elif rotating_stable_since is not None:
-                        elapsed = time.monotonic() - rotating_stable_since
-                        if elapsed >= STABLE_DURATION:
-                            # Stable — verify counts are roughly similar
-                            min_c = min(frequent.values())
-                            max_c = max(frequent.values())
-                            if max_c <= min_c * 3:
+                # --- Rotating: codes appearing ≥3 times (confirmed) ---
+                confirmed = {c: n for c, n in code_counts.items() if n >= 3}
+                # Codes appearing ≥2 times (might reach 3 soon)
+                emerging = {c: n for c, n in code_counts.items() if n >= 2}
+
+                if len(confirmed) >= 2:
+                    # More codes still emerging → not stable yet
+                    if len(emerging) > len(confirmed):
+                        rotating_stable_since = None
+                        last_rotating_count = len(confirmed)
+                    else:
+                        # All emerging codes have been confirmed
+                        if len(confirmed) != last_rotating_count:
+                            last_rotating_count = len(confirmed)
+                            rotating_stable_since = time.monotonic()
+                        elif rotating_stable_since is not None:
+                            elapsed = time.monotonic() - rotating_stable_since
+                            if elapsed >= STABLE_DURATION:
                                 codes = []
-                                for code_val in frequent:
-                                    rep = next(c for c in snapshot if c[0] == code_val)
+                                for code_val in confirmed:
+                                    rep = next(
+                                        c for c in snapshot if c[0] == code_val
+                                    )
                                     codes.append(rep)
                                 await self.hass.async_add_executor_job(
                                     self._learn_rx.stop_capture
@@ -427,21 +447,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                                 return {
                                     "codes": codes,
                                     "is_rotating": True,
-                                    "total_received": len(snapshot),
+                                    "total_received": total,
                                 }
-                else:
-                    # 0 or 1 frequent code — check for single code
-                    best_code, best_count = code_counts.most_common(1)[0]
-                    if best_count >= min_count:
-                        await self.hass.async_add_executor_job(
-                            self._learn_rx.stop_capture
-                        )
-                        best = next(c for c in snapshot if c[0] == best_code)
-                        return {
-                            "codes": [best],
-                            "is_rotating": False,
-                            "total_received": len(snapshot),
-                        }
             await asyncio.sleep(0.5)
         await self.hass.async_add_executor_job(
             self._learn_rx.stop_capture
