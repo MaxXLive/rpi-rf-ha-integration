@@ -376,7 +376,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._learn_rx = None
 
     async def _async_wait_for_codes(
-        self, min_count: int = 5, timeout: float = 30.0
+        self, min_count: int = 5, timeout: float = 60.0
     ):
         """Wait until enough consistent RF codes are captured.
 
@@ -384,42 +384,64 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
           - codes: list of (code, protocol, pulselength) for all qualifying codes
           - is_rotating: True if multiple distinct codes detected
           - total_received: total number of code receptions
+
+        Rotation detection:
+          Tracks how many unique codes appear (each ≥2 times).
+          Once the count stabilizes for 3 seconds (no new codes joining),
+          all rotating codes have been found. This avoids stopping too
+          early when only a subset of rotating codes has been captured.
         """
         deadline = time.monotonic() + timeout
+        last_rotating_count = 0
+        rotating_stable_since: float | None = None
+        STABLE_DURATION = 3.0
+
         while time.monotonic() < deadline:
             snapshot = self._learn_rx.get_capture_snapshot()
             if snapshot:
                 code_counts = Counter(c[0] for c in snapshot)
 
-                # Check for rotating pattern: ≥2 codes each appearing ≥3 times
-                qualifying = {code: cnt for code, cnt in code_counts.items() if cnt >= 3}
-                if len(qualifying) >= 2:
-                    # Rotating codes detected — collect representative tuples
-                    codes = []
-                    for code_val in sorted(qualifying.keys()):
-                        representative = next(c for c in snapshot if c[0] == code_val)
-                        codes.append(representative)
-                    await self.hass.async_add_executor_job(
-                        self._learn_rx.stop_capture
-                    )
-                    return {
-                        "codes": codes,
-                        "is_rotating": True,
-                        "total_received": len(snapshot),
-                    }
+                # Codes appearing ≥2 times (filters single-occurrence noise)
+                frequent = {c: n for c, n in code_counts.items() if n >= 2}
 
-                # Single code: check if best code has enough hits
-                best_code, best_count = code_counts.most_common(1)[0]
-                if best_count >= min_count:
-                    await self.hass.async_add_executor_job(
-                        self._learn_rx.stop_capture
-                    )
-                    best = next(c for c in snapshot if c[0] == best_code)
-                    return {
-                        "codes": [best],
-                        "is_rotating": False,
-                        "total_received": len(snapshot),
-                    }
+                if len(frequent) >= 2:
+                    # Multiple codes detected — possible rotation
+                    # Check if count of unique codes has stabilized
+                    if len(frequent) != last_rotating_count:
+                        last_rotating_count = len(frequent)
+                        rotating_stable_since = time.monotonic()
+                    elif rotating_stable_since is not None:
+                        elapsed = time.monotonic() - rotating_stable_since
+                        if elapsed >= STABLE_DURATION:
+                            # Stable — verify counts are roughly similar
+                            min_c = min(frequent.values())
+                            max_c = max(frequent.values())
+                            if max_c <= min_c * 3:
+                                codes = []
+                                for code_val in frequent:
+                                    rep = next(c for c in snapshot if c[0] == code_val)
+                                    codes.append(rep)
+                                await self.hass.async_add_executor_job(
+                                    self._learn_rx.stop_capture
+                                )
+                                return {
+                                    "codes": codes,
+                                    "is_rotating": True,
+                                    "total_received": len(snapshot),
+                                }
+                else:
+                    # 0 or 1 frequent code — check for single code
+                    best_code, best_count = code_counts.most_common(1)[0]
+                    if best_count >= min_count:
+                        await self.hass.async_add_executor_job(
+                            self._learn_rx.stop_capture
+                        )
+                        best = next(c for c in snapshot if c[0] == best_code)
+                        return {
+                            "codes": [best],
+                            "is_rotating": False,
+                            "total_received": len(snapshot),
+                        }
             await asyncio.sleep(0.5)
         await self.hass.async_add_executor_job(
             self._learn_rx.stop_capture
