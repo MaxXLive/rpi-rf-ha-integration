@@ -65,6 +65,10 @@
                 "title": "EIN-Code anlernen",
                 "description": "Kein Code erkannt. Stelle sicher, dass der Empfänger richtig angeschlossen ist. Drücke den EIN-Knopf und versuche es erneut."
             },
+            "learn_on_done": {
+                "title": "EIN-Code erkannt ✓",
+                "description": "EIN-Code: {code_on}\nProtokoll: {protocol}, Pulslänge: {pulselength} µs\n\nKlicke auf Absenden um mit dem AUS-Code fortzufahren."
+            },
             "learn_off_retry": {
                 "title": "AUS-Code anlernen",
                 "description": "Kein Code erkannt. Drücke den AUS-Knopf und versuche es erneut."
@@ -91,6 +95,10 @@
             "rotating_learn_on_retry": {
                 "title": "Rotierende EIN-Codes anlernen",
                 "description": "Kein Code empfangen. Stelle sicher, dass der Empfänger richtig angeschlossen ist und versuche es erneut."
+            },
+            "rotating_learn_on_done": {
+                "title": "EIN-Codes erkannt ✓",
+                "description": "{codes_on_count} EIN-Codes: {codes_on}\nProtokoll: {protocol}, Pulslänge: {pulselength} µs\n\nKlicke auf Absenden um mit den AUS-Codes fortzufahren."
             },
             "rotating_learn_off": {
                 "title": "Rotierende AUS-Codes anlernen",

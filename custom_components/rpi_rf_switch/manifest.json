@@ -7,5 +7,5 @@
   "integration_type": "device",
   "iot_class": "assumed_state",
   "requirements": ["rpi-rf-gpiod2==1.0.1"],
-  "version": "3.4.7"
+  "version": "3.4.8"
 }

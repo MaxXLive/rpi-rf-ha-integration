@@ -527,7 +527,24 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             "Learned ON (simple): code=%s proto=%s pulse=%s",
             result[0], result[1], result[2],
         )
-        return self.async_show_progress_done(next_step_id="learn_off")
+        return self.async_show_progress_done(next_step_id="learn_on_done")
+
+    async def async_step_learn_on_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show learned ON code before proceeding to OFF."""
+        if user_input is not None:
+            return await self.async_step_learn_off()
+
+        return self.async_show_form(
+            step_id="learn_on_done",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "code_on": str(self._data[CONF_CODE_ON]),
+                "protocol": str(self._data.get(CONF_PROTOCOL, "")),
+                "pulselength": str(self._data.get(CONF_PULSELENGTH, "")),
+            },
+        )
 
     async def async_step_learn_on_retry(
         self, user_input: dict[str, Any] | None = None
@@ -723,7 +740,26 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             len(codes), primary[0], primary[1], primary[2],
         )
         return self.async_show_progress_done(
-            next_step_id="rotating_learn_off"
+            next_step_id="rotating_learn_on_done"
+        )
+
+    async def async_step_rotating_learn_on_done(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show learned rotating ON codes before proceeding to OFF."""
+        if user_input is not None:
+            return await self.async_step_rotating_learn_off()
+
+        codes_on = self._data.get(CONF_CODES_ON, [self._data[CONF_CODE_ON]])
+        return self.async_show_form(
+            step_id="rotating_learn_on_done",
+            data_schema=vol.Schema({}),
+            description_placeholders={
+                "codes_on": ", ".join(str(c) for c in codes_on),
+                "codes_on_count": str(len(codes_on)),
+                "protocol": str(self._data.get(CONF_PROTOCOL, "")),
+                "pulselength": str(self._data.get(CONF_PULSELENGTH, "")),
+            },
         )
 
     async def async_step_rotating_learn_on_retry(

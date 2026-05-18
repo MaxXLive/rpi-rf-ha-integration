@@ -65,6 +65,10 @@
                 "title": "Learn ON Code",
                 "description": "No code was detected. Make sure the receiver is connected correctly. Press the ON button and try again."
             },
+            "learn_on_done": {
+                "title": "ON Code Learned ✓",
+                "description": "ON code: {code_on}\nProtocol: {protocol}, Pulse Length: {pulselength} µs\n\nClick Submit to continue with the OFF code."
+            },
             "learn_off_retry": {
                 "title": "Learn OFF Code",
                 "description": "No code was detected. Press the OFF button and try again."
@@ -91,6 +95,10 @@
             "rotating_learn_on_retry": {
                 "title": "Learn Rotating ON Codes",
                 "description": "No code received. Make sure the receiver is connected correctly and try again."
+            },
+            "rotating_learn_on_done": {
+                "title": "ON Codes Learned ✓",
+                "description": "{codes_on_count} ON codes: {codes_on}\nProtocol: {protocol}, Pulse Length: {pulselength} µs\n\nClick Submit to continue with the OFF codes."
             },
             "rotating_learn_off": {
                 "title": "Learn Rotating OFF Codes",

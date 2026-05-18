@@ -61,6 +61,10 @@
         "title": "Learn ON Code",
         "description": "No code detected. Try again."
       },
+      "learn_on_done": {
+        "title": "ON Code Learned ✓",
+        "description": "ON code: {code_on}\nProtocol: {protocol}, Pulse Length: {pulselength} µs\n\nClick Submit to continue with the OFF code."
+      },
       "learn_off": {
         "title": "Learn OFF Code",
         "description": "Now press the OFF button on your remote repeatedly (~5 times)."
@@ -91,6 +95,10 @@
       "rotating_learn_on_retry": {
         "title": "Learn Rotating ON Codes",
         "description": "No code received. Try again."
+      },
+      "rotating_learn_on_done": {
+        "title": "ON Codes Learned ✓",
+        "description": "{codes_on_count} ON codes: {codes_on}\nProtocol: {protocol}, Pulse Length: {pulselength} µs\n\nClick Submit to continue with the OFF codes."
       },
       "rotating_learn_off": {
         "title": "Learn Rotating OFF Codes",
