@@ -55,11 +55,11 @@
             },
             "learn_on": {
                 "title": "EIN-Code anlernen",
-                "description": "Drücke jetzt den EIN-Knopf auf deiner Fernbedienung. Bei Rotating-Code Fernbedienungen (z.B. SilverCrest) mindestens 20× drücken. Höre auf Signale..."
+                "description": "Drücke jetzt den EIN-Knopf auf deiner Fernbedienung (~5×). Höre auf Signale..."
             },
             "learn_off": {
                 "title": "AUS-Code anlernen",
-                "description": "Drücke jetzt den AUS-Knopf auf deiner Fernbedienung. Bei Rotating-Code Fernbedienungen mindestens 20× drücken. Höre auf Signale..."
+                "description": "Drücke jetzt den AUS-Knopf auf deiner Fernbedienung (~5×). Höre auf Signale..."
             },
             "learn_on_retry": {
                 "title": "EIN-Code anlernen",
@@ -68,6 +68,31 @@
             "learn_off_retry": {
                 "title": "AUS-Code anlernen",
                 "description": "Kein Code erkannt. Drücke den AUS-Knopf und versuche es erneut."
+            },
+            "rotating_setup": {
+                "title": "Rotierende Codes — Einrichtung",
+                "description": "Rotating-Code Fernbedienungen (z.B. SilverCrest/Lidl) senden bei jedem Tastendruck einen anderen Code aus einer festen Gruppe.\n\nWähle, wie die Anzahl der Codes erkannt werden soll. Falls 'automatisch' nicht zuverlässig funktioniert, wähle 'manuell' und gib die Anzahl an.",
+                "data": {
+                    "rotating_mode": "Erkennungsmodus",
+                    "count_on": "Anzahl EIN-Codes",
+                    "count_off": "Anzahl AUS-Codes"
+                }
+            },
+            "rotating_learn_on": {
+                "title": "Rotierende EIN-Codes anlernen",
+                "description": "Drücke jetzt den EIN-Knopf auf deiner Fernbedienung wiederholt (~20×, langsam). Das System sammelt alle verschiedenen Codes."
+            },
+            "rotating_learn_on_retry": {
+                "title": "Rotierende EIN-Codes anlernen",
+                "description": "Kein Code empfangen. Stelle sicher, dass der Empfänger richtig angeschlossen ist und versuche es erneut."
+            },
+            "rotating_learn_off": {
+                "title": "Rotierende AUS-Codes anlernen",
+                "description": "Drücke jetzt den AUS-Knopf auf deiner Fernbedienung wiederholt (~20×, langsam)."
+            },
+            "rotating_learn_off_retry": {
+                "title": "Rotierende AUS-Codes anlernen",
+                "description": "Kein Code empfangen. Drücke den AUS-Knopf und versuche es erneut."
             },
             "learn_confirm": {
                 "title": "Angelernte Codes bestätigen",
@@ -82,8 +107,8 @@
                 }
             },
             "learn_confirm_rotating": {
-                "title": "Rotating-Codes erkannt",
-                "description": "Rotating-Codes erkannt!\n\n{codes_on_count} EIN-Codes: {codes_on}\n{codes_off_count} AUS-Codes: {codes_off}\n\nProtokoll: {protocol}, Pulslänge: {pulselength} µs\n\nAlle Codes werden gespeichert, damit jeder Tastendruck erkannt wird.",
+                "title": "Rotierende Codes bestätigen",
+                "description": "Rotierende Codes erfolgreich angelernt!\n\n{codes_on_count} EIN-Codes: {codes_on}\n{codes_off_count} AUS-Codes: {codes_off}\n\nProtokoll: {protocol}, Pulslänge: {pulselength} µs\n\nAlle Codes werden gespeichert, damit jeder Tastendruck erkannt wird.",
                 "data": {
                     "signal_repetitions": "Signal-Wiederholungen",
                     "device_type": "Gerätetyp"
@@ -101,8 +126,10 @@
             "no_rx_gpio": "Kein Empfänger-Modul konfiguriert. Bitte füge zuerst eins hinzu um den Anlernmodus zu nutzen."
         },
         "progress": {
-            "learn_on": "Drücke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!). Bei Rotating-Code Fernbedienungen mindestens 20× drücken.",
-            "learn_off": "Drücke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!). Bei Rotating-Code Fernbedienungen mindestens 20× drücken."
+            "learn_on": "Drücke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!).",
+            "learn_off": "Drücke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!).",
+            "rotating_learn_on": "Drücke jetzt wiederholt den EIN-Knopf (~20×, langsam). Das System sammelt alle verschiedenen Codes.",
+            "rotating_learn_off": "Drücke jetzt wiederholt den AUS-Knopf (~20×, langsam). Das System sammelt alle verschiedenen Codes."
         }
     },
     "options": {

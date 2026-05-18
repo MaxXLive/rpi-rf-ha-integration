@@ -55,11 +55,11 @@
             },
             "learn_on": {
                 "title": "Learn ON Code",
-                "description": "Press the ON button on your remote now. For rotating code remotes (e.g. SilverCrest), press at least 20 times. Listening for signals..."
+                "description": "Press the ON button on your remote now (~5 times). Listening for signals..."
             },
             "learn_off": {
                 "title": "Learn OFF Code",
-                "description": "Press the OFF button on your remote now. For rotating code remotes, press at least 20 times. Listening for signals..."
+                "description": "Press the OFF button on your remote now (~5 times). Listening for signals..."
             },
             "learn_on_retry": {
                 "title": "Learn ON Code",
@@ -68,6 +68,31 @@
             "learn_off_retry": {
                 "title": "Learn OFF Code",
                 "description": "No code was detected. Press the OFF button and try again."
+            },
+            "rotating_setup": {
+                "title": "Rotating Codes — Setup",
+                "description": "Rotating code remotes (e.g. SilverCrest/Lidl) send a different code with each button press, cycling through a fixed set.\n\nChoose how to detect the number of codes. If 'auto' doesn't work reliably, use 'manual' and specify the count.",
+                "data": {
+                    "rotating_mode": "Detection Mode",
+                    "count_on": "Number of ON codes",
+                    "count_off": "Number of OFF codes"
+                }
+            },
+            "rotating_learn_on": {
+                "title": "Learn Rotating ON Codes",
+                "description": "Press the ON button on your remote repeatedly (~20 times, slowly). The system collects all different codes."
+            },
+            "rotating_learn_on_retry": {
+                "title": "Learn Rotating ON Codes",
+                "description": "No code received. Make sure the receiver is connected correctly and try again."
+            },
+            "rotating_learn_off": {
+                "title": "Learn Rotating OFF Codes",
+                "description": "Press the OFF button on your remote repeatedly (~20 times, slowly)."
+            },
+            "rotating_learn_off_retry": {
+                "title": "Learn Rotating OFF Codes",
+                "description": "No code received. Press the OFF button and try again."
             },
             "learn_confirm": {
                 "title": "Confirm Learned Codes",
@@ -101,8 +126,10 @@
             "no_rx_gpio": "No receiver module configured. Please add one first to use learn mode."
         },
         "progress": {
-            "learn_on": "Press the ON button on your remote repeatedly (press, release, press — do not hold it down!). For rotating code remotes, press at least 20 times.",
-            "learn_off": "Press the OFF button on your remote repeatedly (press, release, press — do not hold it down!). For rotating code remotes, press at least 20 times."
+            "learn_on": "Press the ON button on your remote repeatedly (press, release, press — do not hold it down!).",
+            "learn_off": "Press the OFF button on your remote repeatedly (press, release, press — do not hold it down!).",
+            "rotating_learn_on": "Press the ON button repeatedly (~20 times, slowly). The system is collecting all different codes.",
+            "rotating_learn_off": "Press the OFF button repeatedly (~20 times, slowly). The system is collecting all different codes."
         }
     },
     "options": {

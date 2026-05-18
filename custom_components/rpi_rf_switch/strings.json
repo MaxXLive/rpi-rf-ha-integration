@@ -55,11 +55,44 @@
       },
       "learn_on": {
         "title": "Learn ON Code",
-        "description": "Press the ON button on your remote repeatedly. For rotating code remotes (e.g. SilverCrest), press at least 20 times."
+        "description": "Press the ON button on your remote repeatedly (~5 times)."
+      },
+      "learn_on_retry": {
+        "title": "Learn ON Code",
+        "description": "No code detected. Try again."
       },
       "learn_off": {
         "title": "Learn OFF Code",
-        "description": "Now press the OFF button on your remote repeatedly. For rotating code remotes, press at least 20 times."
+        "description": "Now press the OFF button on your remote repeatedly (~5 times)."
+      },
+      "learn_off_retry": {
+        "title": "Learn OFF Code",
+        "description": "No code detected. Try again."
+      },
+      "rotating_setup": {
+        "title": "Rotating Codes — Setup",
+        "description": "Rotating code remotes (e.g. SilverCrest/Lidl) send a different code with each button press, cycling through a fixed set.\n\nChoose how to detect the number of codes. If 'auto' doesn't work reliably, use 'manual' and specify the count.",
+        "data": {
+          "rotating_mode": "Detection Mode",
+          "count_on": "Number of ON codes",
+          "count_off": "Number of OFF codes"
+        }
+      },
+      "rotating_learn_on": {
+        "title": "Learn Rotating ON Codes",
+        "description": "Press the ON button on your remote repeatedly (~20 times, slowly). The system collects all different codes."
+      },
+      "rotating_learn_on_retry": {
+        "title": "Learn Rotating ON Codes",
+        "description": "No code received. Try again."
+      },
+      "rotating_learn_off": {
+        "title": "Learn Rotating OFF Codes",
+        "description": "Now press the OFF button on your remote repeatedly (~20 times, slowly)."
+      },
+      "rotating_learn_off_retry": {
+        "title": "Learn Rotating OFF Codes",
+        "description": "No code received. Try again."
       },
       "learn_confirm_rotating": {
         "title": "Rotating Codes Detected",

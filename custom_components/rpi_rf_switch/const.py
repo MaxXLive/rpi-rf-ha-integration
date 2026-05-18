@@ -27,6 +27,7 @@ ENTRY_TYPE_DEVICE = "device"
 MODE_DIP = "dip"
 MODE_DIRECT = "direct"
 MODE_LEARN = "learn"
+MODE_LEARN_ROTATING = "learn_rotating"
 
 DEVICE_TYPE_OUTLET = "outlet"
 DEVICE_TYPE_LIGHT = "light"

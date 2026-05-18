@@ -48,6 +48,7 @@ from .const import (
     MODE_DIP,
     MODE_DIRECT,
     MODE_LEARN,
+    MODE_LEARN_ROTATING,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -74,6 +75,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._learn_rx_is_temp = False
         self._learn_task: asyncio.Task | None = None
         self._is_rotating = False
+        self._rotating_count_on: int | None = None
+        self._rotating_count_off: int | None = None
 
     def _get_entries_by_type(self, entry_type: str) -> list:
         """Get all config entries of a given type."""
@@ -205,7 +208,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._data[CONF_ENTRY_TYPE] = ENTRY_TYPE_DEVICE
             mode = user_input[CONF_MODE]
 
-            if mode == MODE_LEARN and not has_rx:
+            if mode in (MODE_LEARN, MODE_LEARN_ROTATING) and not has_rx:
                 errors[CONF_MODE] = "rx_required_for_learn"
 
             if not errors:
@@ -213,6 +216,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                     return await self.async_step_dip()
                 if mode == MODE_LEARN:
                     return await self.async_step_learn_on()
+                if mode == MODE_LEARN_ROTATING:
+                    return await self.async_step_rotating_setup()
                 return await self.async_step_direct()
 
         modes = {
@@ -220,7 +225,8 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             MODE_DIRECT: "Direkter Code (Dezimal)",
         }
         if has_rx:
-            modes[MODE_LEARN] = "Anlernen (Code von Fernbedienung)"
+            modes[MODE_LEARN] = "Anlernen (einfache Codes)"
+            modes[MODE_LEARN_ROTATING] = "Anlernen (Rotierende Codes)"
 
         return self.async_show_form(
             step_id="device",
@@ -375,84 +381,92 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.hass.async_add_executor_job(self._learn_rx.disable)
             self._learn_rx = None
 
-    async def _async_wait_for_codes(
-        self, min_count: int = 5, timeout: float = 60.0
+    async def _async_wait_for_single_code(
+        self, min_count: int = 5, timeout: float = 30.0
     ):
-        """Wait until enough consistent RF codes are captured.
+        """Wait for a single dominant code (simple learn mode).
 
-        Returns dict with:
-          - codes: list of (code, protocol, pulselength) for all qualifying codes
-          - is_rotating: True if multiple distinct codes detected
-          - total_received: total number of code receptions
-
-        Detection strategy:
-          1. Single code: one code dominates (>50% of total) with ≥min_count hits
-          2. Rotating: multiple codes each ≥3 times, no single code dominant,
-             count stabilized for 5 seconds, and no emerging codes still climbing
-
-        The dominance check (>50%) prevents noise codes from triggering
-        false rotating detection on single-code devices.
+        Returns (code, protocol, pulselength) of the most frequent code.
         """
         deadline = time.monotonic() + timeout
-        last_rotating_count = 0
-        rotating_stable_since: float | None = None
+        while time.monotonic() < deadline:
+            snapshot = self._learn_rx.get_capture_snapshot()
+            if snapshot:
+                code_counts = Counter(c[0] for c in snapshot)
+                best_code, best_count = code_counts.most_common(1)[0]
+                if best_count >= min_count:
+                    await self.hass.async_add_executor_job(
+                        self._learn_rx.stop_capture
+                    )
+                    return next(c for c in snapshot if c[0] == best_code)
+            await asyncio.sleep(0.5)
+        await self.hass.async_add_executor_job(
+            self._learn_rx.stop_capture
+        )
+        raise asyncio.TimeoutError("No consistent code detected")
+
+    async def _async_wait_for_rotating_codes(
+        self, expected_count: int | None = None, timeout: float = 60.0
+    ):
+        """Wait for multiple rotating codes.
+
+        Args:
+            expected_count: If set, wait for exactly this many unique codes.
+                           If None, auto-detect by waiting for stabilization.
+            timeout: Maximum wait time in seconds.
+
+        Returns list of (code, protocol, pulselength) tuples.
+        """
+        deadline = time.monotonic() + timeout
+        last_confirmed_count = 0
+        stable_since: float | None = None
         STABLE_DURATION = 5.0
 
         while time.monotonic() < deadline:
             snapshot = self._learn_rx.get_capture_snapshot()
             if snapshot:
                 code_counts = Counter(c[0] for c in snapshot)
-                total = sum(code_counts.values())
-                top_two = code_counts.most_common(2)
-                best_code, best_count = top_two[0]
-
-                # --- Single code: best code ≥2x the second-best ---
-                # This distinguishes "one real code + noise" from
-                # "two equally frequent rotating codes"
-                second_count = top_two[1][1] if len(top_two) >= 2 else 0
-                if best_count >= min_count and best_count >= second_count * 2:
-                    await self.hass.async_add_executor_job(
-                        self._learn_rx.stop_capture
-                    )
-                    best = next(c for c in snapshot if c[0] == best_code)
-                    return {
-                        "codes": [best],
-                        "is_rotating": False,
-                        "total_received": total,
-                    }
-
-                # --- Rotating: codes appearing ≥3 times (confirmed) ---
+                # Confirmed codes: appeared ≥3 times
                 confirmed = {c: n for c, n in code_counts.items() if n >= 3}
-                # Codes appearing ≥2 times (might reach 3 soon)
+                # Emerging codes: appeared ≥2 times (might reach 3 soon)
                 emerging = {c: n for c, n in code_counts.items() if n >= 2}
 
-                if len(confirmed) >= 2:
-                    # More codes still emerging → not stable yet
-                    if len(emerging) > len(confirmed):
-                        rotating_stable_since = None
-                        last_rotating_count = len(confirmed)
-                    else:
-                        # All emerging codes have been confirmed
-                        if len(confirmed) != last_rotating_count:
-                            last_rotating_count = len(confirmed)
-                            rotating_stable_since = time.monotonic()
-                        elif rotating_stable_since is not None:
-                            elapsed = time.monotonic() - rotating_stable_since
-                            if elapsed >= STABLE_DURATION:
-                                codes = []
-                                for code_val in confirmed:
-                                    rep = next(
-                                        c for c in snapshot if c[0] == code_val
+                if expected_count is not None:
+                    # Manual mode: wait for exactly N codes each ≥3x
+                    if len(confirmed) >= expected_count:
+                        # Take top N by count
+                        top_codes = sorted(
+                            confirmed, key=confirmed.get, reverse=True
+                        )[:expected_count]
+                        codes = [
+                            next(c for c in snapshot if c[0] == cv)
+                            for cv in top_codes
+                        ]
+                        await self.hass.async_add_executor_job(
+                            self._learn_rx.stop_capture
+                        )
+                        return codes
+                else:
+                    # Auto mode: wait for count to stabilize
+                    if len(confirmed) >= 2:
+                        # Don't stabilize while new codes are still emerging
+                        if len(emerging) > len(confirmed):
+                            stable_since = None
+                            last_confirmed_count = len(confirmed)
+                        else:
+                            if len(confirmed) != last_confirmed_count:
+                                last_confirmed_count = len(confirmed)
+                                stable_since = time.monotonic()
+                            elif stable_since is not None:
+                                if time.monotonic() - stable_since >= STABLE_DURATION:
+                                    codes = [
+                                        next(c for c in snapshot if c[0] == cv)
+                                        for cv in confirmed
+                                    ]
+                                    await self.hass.async_add_executor_job(
+                                        self._learn_rx.stop_capture
                                     )
-                                    codes.append(rep)
-                                await self.hass.async_add_executor_job(
-                                    self._learn_rx.stop_capture
-                                )
-                                return {
-                                    "codes": codes,
-                                    "is_rotating": True,
-                                    "total_received": total,
-                                }
+                                    return codes
             await asyncio.sleep(0.5)
         await self.hass.async_add_executor_job(
             self._learn_rx.stop_capture
@@ -462,13 +476,13 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_learn_on(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Learn ON code with auto-detection."""
+        """Learn ON code (simple single-code mode)."""
         if not self._learn_task:
             if not await self._ensure_learn_listener():
                 return self.async_abort(reason="no_rx_gpio")
 
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes(min_count=5, timeout=60.0)
+                self._async_wait_for_single_code(min_count=5, timeout=30.0)
             )
             return self.async_show_progress(
                 step_id="learn_on",
@@ -486,21 +500,13 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._learn_task = None
-        codes = result["codes"]
-        self._is_rotating = result["is_rotating"]
-
-        # Store primary code (first/most common) for TX
-        primary = codes[0]
-        self._data[CONF_CODE_ON] = primary[0]
-        self._data[CONF_PROTOCOL] = primary[1]
-        self._data[CONF_PULSELENGTH] = primary[2]
-
-        if self._is_rotating:
-            self._data[CONF_CODES_ON] = [c[0] for c in codes]
+        self._data[CONF_CODE_ON] = result[0]
+        self._data[CONF_PROTOCOL] = result[1]
+        self._data[CONF_PULSELENGTH] = result[2]
 
         _LOGGER.info(
-            "Learned ON: %s code(s), rotating=%s, primary=%s proto=%s pulse=%s",
-            len(codes), self._is_rotating, primary[0], primary[1], primary[2],
+            "Learned ON (simple): code=%s proto=%s pulse=%s",
+            result[0], result[1], result[2],
         )
         return self.async_show_progress_done(next_step_id="learn_off")
 
@@ -513,7 +519,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._learn_rx.start_capture
             )
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes(min_count=5, timeout=60.0)
+                self._async_wait_for_single_code(min_count=5, timeout=30.0)
             )
             return self.async_show_progress(
                 step_id="learn_on",
@@ -530,13 +536,13 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def async_step_learn_off(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
-        """Learn OFF code with auto-detection."""
+        """Learn OFF code (simple single-code mode)."""
         if not self._learn_task:
             await self.hass.async_add_executor_job(
                 self._learn_rx.start_capture
             )
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes(min_count=5, timeout=60.0)
+                self._async_wait_for_single_code(min_count=5, timeout=30.0)
             )
             return self.async_show_progress(
                 step_id="learn_off",
@@ -554,23 +560,14 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._learn_task = None
-        codes = result["codes"]
-
-        self._data[CONF_CODE_OFF] = codes[0][0]
-        if result["is_rotating"] or self._is_rotating:
-            self._is_rotating = True
-            self._data[CONF_CODES_OFF] = [c[0] for c in codes]
+        self._data[CONF_CODE_OFF] = result[0]
 
         _LOGGER.info(
-            "Learned OFF: %s code(s), rotating=%s",
-            len(codes), self._is_rotating,
+            "Learned OFF (simple): code=%s",
+            result[0],
         )
         await self._cleanup_learn_listener()
-
-        next_step = "learn_confirm_rotating" if self._is_rotating else "learn_confirm"
-        return self.async_show_progress_done(
-            next_step_id=next_step
-        )
+        return self.async_show_progress_done(next_step_id="learn_confirm")
 
     async def async_step_learn_off_retry(
         self, user_input: dict[str, Any] | None = None
@@ -581,7 +578,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._learn_rx.start_capture
             )
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes(min_count=5, timeout=60.0)
+                self._async_wait_for_single_code(min_count=5, timeout=30.0)
             )
             return self.async_show_progress(
                 step_id="learn_off",
@@ -591,6 +588,180 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="learn_off_retry",
+            data_schema=vol.Schema({}),
+            errors={"base": "no_code_received"},
+        )
+
+    # --- Rotating code learn flow ---
+
+    async def async_step_rotating_setup(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Choose rotating code detection mode (auto or manual count)."""
+        if user_input is not None:
+            rotating_mode = user_input.get("rotating_mode", "auto")
+            if rotating_mode == "manual":
+                self._rotating_count_on = user_input.get("count_on", 4)
+                self._rotating_count_off = user_input.get("count_off", 4)
+            else:
+                self._rotating_count_on = None
+                self._rotating_count_off = None
+            return await self.async_step_rotating_learn_on()
+
+        return self.async_show_form(
+            step_id="rotating_setup",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("rotating_mode", default="auto"): vol.In(
+                        {
+                            "auto": "Anzahl automatisch erkennen",
+                            "manual": "Anzahl manuell festlegen",
+                        }
+                    ),
+                    vol.Optional("count_on", default=4): vol.All(
+                        int, vol.Range(min=2, max=10)
+                    ),
+                    vol.Optional("count_off", default=4): vol.All(
+                        int, vol.Range(min=2, max=10)
+                    ),
+                }
+            ),
+        )
+
+    async def async_step_rotating_learn_on(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Learn rotating ON codes."""
+        if not self._learn_task:
+            if not await self._ensure_learn_listener():
+                return self.async_abort(reason="no_rx_gpio")
+
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_rotating_codes(
+                    expected_count=self._rotating_count_on,
+                    timeout=60.0,
+                )
+            )
+            return self.async_show_progress(
+                step_id="rotating_learn_on",
+                progress_action="rotating_learn_on",
+                progress_task=self._learn_task,
+            )
+
+        # Task completed
+        try:
+            codes = self._learn_task.result()
+        except Exception:
+            self._learn_task = None
+            return self.async_show_progress_done(
+                next_step_id="rotating_learn_on_retry"
+            )
+
+        self._learn_task = None
+        primary = codes[0]
+        self._data[CONF_CODE_ON] = primary[0]
+        self._data[CONF_PROTOCOL] = primary[1]
+        self._data[CONF_PULSELENGTH] = primary[2]
+        self._data[CONF_CODES_ON] = [c[0] for c in codes]
+
+        _LOGGER.info(
+            "Learned ON (rotating): %s codes, primary=%s proto=%s pulse=%s",
+            len(codes), primary[0], primary[1], primary[2],
+        )
+        return self.async_show_progress_done(
+            next_step_id="rotating_learn_off"
+        )
+
+    async def async_step_rotating_learn_on_retry(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Retry rotating ON code learning after timeout."""
+        if user_input is not None:
+            await self.hass.async_add_executor_job(
+                self._learn_rx.start_capture
+            )
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_rotating_codes(
+                    expected_count=self._rotating_count_on,
+                    timeout=60.0,
+                )
+            )
+            return self.async_show_progress(
+                step_id="rotating_learn_on",
+                progress_action="rotating_learn_on",
+                progress_task=self._learn_task,
+            )
+
+        return self.async_show_form(
+            step_id="rotating_learn_on_retry",
+            data_schema=vol.Schema({}),
+            errors={"base": "no_code_received"},
+        )
+
+    async def async_step_rotating_learn_off(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Learn rotating OFF codes."""
+        if not self._learn_task:
+            await self.hass.async_add_executor_job(
+                self._learn_rx.start_capture
+            )
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_rotating_codes(
+                    expected_count=self._rotating_count_off,
+                    timeout=60.0,
+                )
+            )
+            return self.async_show_progress(
+                step_id="rotating_learn_off",
+                progress_action="rotating_learn_off",
+                progress_task=self._learn_task,
+            )
+
+        # Task completed
+        try:
+            codes = self._learn_task.result()
+        except Exception:
+            self._learn_task = None
+            return self.async_show_progress_done(
+                next_step_id="rotating_learn_off_retry"
+            )
+
+        self._learn_task = None
+        self._data[CONF_CODE_OFF] = codes[0][0]
+        self._data[CONF_CODES_OFF] = [c[0] for c in codes]
+
+        _LOGGER.info(
+            "Learned OFF (rotating): %s codes",
+            len(codes),
+        )
+        await self._cleanup_learn_listener()
+        return self.async_show_progress_done(
+            next_step_id="learn_confirm_rotating"
+        )
+
+    async def async_step_rotating_learn_off_retry(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Retry rotating OFF code learning after timeout."""
+        if user_input is not None:
+            await self.hass.async_add_executor_job(
+                self._learn_rx.start_capture
+            )
+            self._learn_task = self.hass.async_create_task(
+                self._async_wait_for_rotating_codes(
+                    expected_count=self._rotating_count_off,
+                    timeout=60.0,
+                )
+            )
+            return self.async_show_progress(
+                step_id="rotating_learn_off",
+                progress_action="rotating_learn_off",
+                progress_task=self._learn_task,
+            )
+
+        return self.async_show_form(
+            step_id="rotating_learn_off_retry",
             data_schema=vol.Schema({}),
             errors={"base": "no_code_received"},
         )
@@ -694,7 +865,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             self._data[CONF_DEVICE_TYPE] = user_input.get(
                 CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
             )
-            self._data[CONF_MODE] = MODE_LEARN
+            self._data[CONF_MODE] = MODE_LEARN_ROTATING
 
             unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
             await self.async_set_unique_id(unique_id)
