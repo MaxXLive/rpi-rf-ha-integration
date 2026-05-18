@@ -403,10 +403,14 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if snapshot:
                 code_counts = Counter(c[0] for c in snapshot)
                 total = sum(code_counts.values())
-                best_code, best_count = code_counts.most_common(1)[0]
+                top_two = code_counts.most_common(2)
+                best_code, best_count = top_two[0]
 
-                # --- Single code: one code dominates >50% of all receptions ---
-                if best_count >= min_count and best_count / total > 0.5:
+                # --- Single code: best code ≥2x the second-best ---
+                # This distinguishes "one real code + noise" from
+                # "two equally frequent rotating codes"
+                second_count = top_two[1][1] if len(top_two) >= 2 else 0
+                if best_count >= min_count and best_count >= second_count * 2:
                     await self.hass.async_add_executor_job(
                         self._learn_rx.stop_capture
                     )
