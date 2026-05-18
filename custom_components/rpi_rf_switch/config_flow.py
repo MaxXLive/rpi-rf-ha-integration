@@ -644,6 +644,22 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             ),
         )
 
+    def _rotating_timeout(self, count: int | None) -> float:
+        """Calculate timeout based on expected code count.
+
+        For manual: count × 3 hits × ~2s per press + 15s buffer.
+        For auto: fixed 90s (needs stabilization time).
+        """
+        if count is not None:
+            return max(60.0, count * 3 * 2 + 15)
+        return 90.0
+
+    def _rotating_min_presses(self, count: int | None) -> int:
+        """Minimum button presses needed: count × 3 hits."""
+        if count is not None:
+            return count * 3
+        return 20
+
     async def async_step_rotating_learn_on(
         self, user_input: dict[str, Any] | None = None
     ) -> FlowResult:
@@ -652,16 +668,20 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             if not await self._ensure_learn_listener():
                 return self.async_abort(reason="no_rx_gpio")
 
+            timeout = self._rotating_timeout(self._rotating_count_on)
             self._learn_task = self.hass.async_create_task(
                 self._async_wait_for_rotating_codes(
                     expected_count=self._rotating_count_on,
-                    timeout=60.0,
+                    timeout=timeout,
                 )
             )
             return self.async_show_progress(
                 step_id="rotating_learn_on",
                 progress_action="rotating_learn_on",
                 progress_task=self._learn_task,
+                description_placeholders={
+                    "min_presses": str(self._rotating_min_presses(self._rotating_count_on)),
+                },
             )
 
         # Task completed
@@ -696,16 +716,20 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(
                 self._learn_rx.start_capture
             )
+            timeout = self._rotating_timeout(self._rotating_count_on)
             self._learn_task = self.hass.async_create_task(
                 self._async_wait_for_rotating_codes(
                     expected_count=self._rotating_count_on,
-                    timeout=60.0,
+                    timeout=timeout,
                 )
             )
             return self.async_show_progress(
                 step_id="rotating_learn_on",
                 progress_action="rotating_learn_on",
                 progress_task=self._learn_task,
+                description_placeholders={
+                    "min_presses": str(self._rotating_min_presses(self._rotating_count_on)),
+                },
             )
 
         return self.async_show_form(
@@ -722,16 +746,20 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(
                 self._learn_rx.start_capture
             )
+            timeout = self._rotating_timeout(self._rotating_count_off)
             self._learn_task = self.hass.async_create_task(
                 self._async_wait_for_rotating_codes(
                     expected_count=self._rotating_count_off,
-                    timeout=60.0,
+                    timeout=timeout,
                 )
             )
             return self.async_show_progress(
                 step_id="rotating_learn_off",
                 progress_action="rotating_learn_off",
                 progress_task=self._learn_task,
+                description_placeholders={
+                    "min_presses": str(self._rotating_min_presses(self._rotating_count_off)),
+                },
             )
 
         # Task completed
@@ -764,16 +792,20 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             await self.hass.async_add_executor_job(
                 self._learn_rx.start_capture
             )
+            timeout = self._rotating_timeout(self._rotating_count_off)
             self._learn_task = self.hass.async_create_task(
                 self._async_wait_for_rotating_codes(
                     expected_count=self._rotating_count_off,
-                    timeout=60.0,
+                    timeout=timeout,
                 )
             )
             return self.async_show_progress(
                 step_id="rotating_learn_off",
                 progress_action="rotating_learn_off",
                 progress_task=self._learn_task,
+                description_placeholders={
+                    "min_presses": str(self._rotating_min_presses(self._rotating_count_off)),
+                },
             )
 
         return self.async_show_form(

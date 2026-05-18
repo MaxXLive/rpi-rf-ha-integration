@@ -134,8 +134,8 @@
         "progress": {
             "learn_on": "Drücke jetzt wiederholt den EIN-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!).",
             "learn_off": "Drücke jetzt wiederholt den AUS-Knopf auf deiner Fernbedienung (drücken, loslassen, drücken — nicht gedrückt halten!).",
-            "rotating_learn_on": "Drücke jetzt wiederholt den EIN-Knopf (~20×, langsam). Das System sammelt alle verschiedenen Codes.",
-            "rotating_learn_off": "Drücke jetzt wiederholt den AUS-Knopf (~20×, langsam). Das System sammelt alle verschiedenen Codes."
+            "rotating_learn_on": "Drücke jetzt wiederholt den EIN-Knopf (mindestens {min_presses}×, langsam — ca. 1× pro Sekunde).",
+            "rotating_learn_off": "Drücke jetzt wiederholt den AUS-Knopf (mindestens {min_presses}×, langsam — ca. 1× pro Sekunde)."
         }
     },
     "options": {
