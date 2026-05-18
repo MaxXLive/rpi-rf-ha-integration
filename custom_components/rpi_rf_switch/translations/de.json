@@ -190,28 +190,5 @@
         "error": {
             "invalid_system_code": "System-Code muss genau 5 Ziffern aus 0 und 1 sein (z.B. 10101)."
         }
-    },
-    "selector": {
-        "mode": {
-            "options": {
-                "dip": "DIP-Schalter (System + Unit Code)",
-                "direct": "Direkter Code (Dezimal)",
-                "learn": "Anlernen (einfache Codes)",
-                "learn_rotating": "Anlernen (Rotierende Codes)"
-            }
-        },
-        "device_type": {
-            "options": {
-                "outlet": "Steckdose",
-                "light": "Licht",
-                "switch": "Schalter"
-            }
-        },
-        "rotating_mode": {
-            "options": {
-                "auto": "Anzahl automatisch erkennen",
-                "manual": "Anzahl manuell festlegen"
-            }
-        }
     }
 }
