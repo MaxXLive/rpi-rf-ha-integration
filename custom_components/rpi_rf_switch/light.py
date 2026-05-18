@@ -16,6 +16,8 @@ from .const import (
     CONF_CODE_LENGTH,
     CONF_CODE_OFF,
     CONF_CODE_ON,
+    CONF_CODES_OFF,
+    CONF_CODES_ON,
     CONF_DEVICE_TYPE,
     CONF_ENTRY_TYPE,
     CONF_NAME,
@@ -72,6 +74,8 @@ class RpiRfLight(LightEntity, RestoreEntity):
 
         self._code_on: int = config[CONF_CODE_ON]
         self._code_off: int = config[CONF_CODE_OFF]
+        self._codes_on: set[int] = set(config.get(CONF_CODES_ON, [self._code_on]))
+        self._codes_off: set[int] = set(config.get(CONF_CODES_OFF, [self._code_off]))
         self._protocol: int = config.get(CONF_PROTOCOL, DEFAULT_PROTOCOL)
         self._pulselength: int | None = config.get(CONF_PULSELENGTH)
         self._signal_repetitions: int = config.get(
@@ -103,10 +107,10 @@ class RpiRfLight(LightEntity, RestoreEntity):
         self, code: int, protocol: int, pulselength: int
     ) -> None:
         """Handle received RF code (called from RX thread)."""
-        if code == self._code_on and not self._attr_is_on:
+        if code in self._codes_on and not self._attr_is_on:
             self._attr_is_on = True
             self.schedule_update_ha_state()
-        elif code == self._code_off and self._attr_is_on:
+        elif code in self._codes_off and self._attr_is_on:
             self._attr_is_on = False
             self.schedule_update_ha_state()
 

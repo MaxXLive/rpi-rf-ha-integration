@@ -18,6 +18,8 @@ from .const import (
     CONF_CODE_LENGTH,
     CONF_CODE_OFF,
     CONF_CODE_ON,
+    CONF_CODES_OFF,
+    CONF_CODES_ON,
     CONF_DEVICE_TYPE,
     CONF_ENTRY_TYPE,
     CONF_GPIO,
@@ -71,6 +73,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         self._learn_rx = None
         self._learn_rx_is_temp = False
         self._learn_task: asyncio.Task | None = None
+        self._is_rotating = False
 
     def _get_entries_by_type(self, entry_type: str) -> list:
         """Get all config entries of a given type."""
@@ -375,19 +378,48 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     async def _async_wait_for_codes(
         self, min_count: int = 5, timeout: float = 30.0
     ):
-        """Wait until enough consistent RF codes are captured."""
+        """Wait until enough consistent RF codes are captured.
+
+        Returns dict with:
+          - codes: list of (code, protocol, pulselength) for all qualifying codes
+          - is_rotating: True if multiple distinct codes detected
+          - total_received: total number of code receptions
+        """
         deadline = time.monotonic() + timeout
         while time.monotonic() < deadline:
             snapshot = self._learn_rx.get_capture_snapshot()
             if snapshot:
                 code_counts = Counter(c[0] for c in snapshot)
+
+                # Check for rotating pattern: ≥2 codes each appearing ≥3 times
+                qualifying = {code: cnt for code, cnt in code_counts.items() if cnt >= 3}
+                if len(qualifying) >= 2:
+                    # Rotating codes detected — collect representative tuples
+                    codes = []
+                    for code_val in sorted(qualifying.keys()):
+                        representative = next(c for c in snapshot if c[0] == code_val)
+                        codes.append(representative)
+                    await self.hass.async_add_executor_job(
+                        self._learn_rx.stop_capture
+                    )
+                    return {
+                        "codes": codes,
+                        "is_rotating": True,
+                        "total_received": len(snapshot),
+                    }
+
+                # Single code: check if best code has enough hits
                 best_code, best_count = code_counts.most_common(1)[0]
                 if best_count >= min_count:
                     await self.hass.async_add_executor_job(
                         self._learn_rx.stop_capture
                     )
                     best = next(c for c in snapshot if c[0] == best_code)
-                    return best
+                    return {
+                        "codes": [best],
+                        "is_rotating": False,
+                        "total_received": len(snapshot),
+                    }
             await asyncio.sleep(0.5)
         await self.hass.async_add_executor_job(
             self._learn_rx.stop_capture
@@ -403,7 +435,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 return self.async_abort(reason="no_rx_gpio")
 
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes()
+                self._async_wait_for_codes(min_count=5, timeout=60.0)
             )
             return self.async_show_progress(
                 step_id="learn_on",
@@ -413,7 +445,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Task completed
         try:
-            best = self._learn_task.result()
+            result = self._learn_task.result()
         except Exception:
             self._learn_task = None
             return self.async_show_progress_done(
@@ -421,13 +453,21 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._learn_task = None
-        code, protocol, pulselength = best
-        self._data[CONF_CODE_ON] = code
-        self._data[CONF_PROTOCOL] = protocol
-        self._data[CONF_PULSELENGTH] = pulselength
+        codes = result["codes"]
+        self._is_rotating = result["is_rotating"]
+
+        # Store primary code (first/most common) for TX
+        primary = codes[0]
+        self._data[CONF_CODE_ON] = primary[0]
+        self._data[CONF_PROTOCOL] = primary[1]
+        self._data[CONF_PULSELENGTH] = primary[2]
+
+        if self._is_rotating:
+            self._data[CONF_CODES_ON] = [c[0] for c in codes]
+
         _LOGGER.info(
-            "Learned ON code=%s proto=%s pulse=%s",
-            code, protocol, pulselength,
+            "Learned ON: %s code(s), rotating=%s, primary=%s proto=%s pulse=%s",
+            len(codes), self._is_rotating, primary[0], primary[1], primary[2],
         )
         return self.async_show_progress_done(next_step_id="learn_off")
 
@@ -440,7 +480,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._learn_rx.start_capture
             )
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes()
+                self._async_wait_for_codes(min_count=5, timeout=60.0)
             )
             return self.async_show_progress(
                 step_id="learn_on",
@@ -463,7 +503,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._learn_rx.start_capture
             )
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes()
+                self._async_wait_for_codes(min_count=5, timeout=60.0)
             )
             return self.async_show_progress(
                 step_id="learn_off",
@@ -473,7 +513,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         # Task completed
         try:
-            best = self._learn_task.result()
+            result = self._learn_task.result()
         except Exception:
             self._learn_task = None
             return self.async_show_progress_done(
@@ -481,11 +521,22 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             )
 
         self._learn_task = None
-        self._data[CONF_CODE_OFF] = best[0]
-        _LOGGER.info("Learned OFF code=%s", best[0])
+        codes = result["codes"]
+
+        self._data[CONF_CODE_OFF] = codes[0][0]
+        if result["is_rotating"] or self._is_rotating:
+            self._is_rotating = True
+            self._data[CONF_CODES_OFF] = [c[0] for c in codes]
+
+        _LOGGER.info(
+            "Learned OFF: %s code(s), rotating=%s",
+            len(codes), self._is_rotating,
+        )
         await self._cleanup_learn_listener()
+
+        next_step = "learn_confirm_rotating" if self._is_rotating else "learn_confirm"
         return self.async_show_progress_done(
-            next_step_id="learn_confirm"
+            next_step_id=next_step
         )
 
     async def async_step_learn_off_retry(
@@ -497,7 +548,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 self._learn_rx.start_capture
             )
             self._learn_task = self.hass.async_create_task(
-                self._async_wait_for_codes()
+                self._async_wait_for_codes(min_count=5, timeout=60.0)
             )
             return self.async_show_progress(
                 step_id="learn_off",
@@ -599,6 +650,60 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         best_code_val = code_counts.most_common(1)[0][0]
         return next(c for c in captured if c[0] == best_code_val)
 
+    async def async_step_learn_confirm_rotating(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Show rotating codes for confirmation (read-only codes)."""
+        if user_input is not None:
+            self._data[CONF_SIGNAL_REPETITIONS] = user_input.get(
+                CONF_SIGNAL_REPETITIONS, DEFAULT_SIGNAL_REPETITIONS
+            )
+            self._data[CONF_DEVICE_TYPE] = user_input.get(
+                CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+            )
+            self._data[CONF_MODE] = MODE_LEARN
+
+            unique_id = f"rpi_rf_{self._data[CONF_CODE_ON]}"
+            await self.async_set_unique_id(unique_id)
+            self._abort_if_unique_id_configured()
+
+            return self.async_create_entry(
+                title=self._data[CONF_NAME],
+                data=self._data,
+            )
+
+        codes_on = self._data.get(CONF_CODES_ON, [self._data[CONF_CODE_ON]])
+        codes_off = self._data.get(CONF_CODES_OFF, [self._data[CONF_CODE_OFF]])
+
+        codes_on_str = ", ".join(str(c) for c in codes_on)
+        codes_off_str = ", ".join(str(c) for c in codes_off)
+
+        return self.async_show_form(
+            step_id="learn_confirm_rotating",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_SIGNAL_REPETITIONS,
+                        default=DEFAULT_SIGNAL_REPETITIONS,
+                    ): int,
+                    vol.Required(
+                        CONF_DEVICE_TYPE,
+                        default=self._data.get(
+                            CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+                        ),
+                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                }
+            ),
+            description_placeholders={
+                "codes_on": codes_on_str,
+                "codes_on_count": str(len(codes_on)),
+                "codes_off": codes_off_str,
+                "codes_off_count": str(len(codes_off)),
+                "protocol": str(self._data.get(CONF_PROTOCOL, DEFAULT_PROTOCOL)),
+                "pulselength": str(self._data.get(CONF_PULSELENGTH, "—")),
+            },
+        )
+
     # --- Options flow ---
 
     @staticmethod
@@ -627,6 +732,8 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
         mode = data.get(CONF_MODE, MODE_DIRECT)
         if mode == MODE_DIP:
             return await self.async_step_dip_options(user_input)
+        if CONF_CODES_ON in data:
+            return await self.async_step_rotating_options(user_input)
         return await self.async_step_direct_options(user_input)
 
     async def async_step_tx_options(
@@ -797,4 +904,56 @@ class RpiRfSwitchOptionsFlow(config_entries.OptionsFlow):
                     ): vol.In(DEVICE_TYPE_OPTIONS),
                 }
             ),
+        )
+
+    async def async_step_rotating_options(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Edit rotating code device options (codes are read-only)."""
+        data = {**self.config_entry.data, **self.config_entry.options}
+
+        if user_input is not None:
+            # Preserve all existing code data, only update editable fields
+            result = {
+                CONF_SIGNAL_REPETITIONS: user_input.get(
+                    CONF_SIGNAL_REPETITIONS, DEFAULT_SIGNAL_REPETITIONS
+                ),
+                CONF_DEVICE_TYPE: user_input.get(
+                    CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+                ),
+            }
+            return self.async_create_entry(title="", data=result)
+
+        codes_on = data.get(CONF_CODES_ON, [data.get(CONF_CODE_ON)])
+        codes_off = data.get(CONF_CODES_OFF, [data.get(CONF_CODE_OFF)])
+        codes_on_str = ", ".join(str(c) for c in codes_on)
+        codes_off_str = ", ".join(str(c) for c in codes_off)
+
+        return self.async_show_form(
+            step_id="rotating_options",
+            data_schema=vol.Schema(
+                {
+                    vol.Optional(
+                        CONF_SIGNAL_REPETITIONS,
+                        default=data.get(
+                            CONF_SIGNAL_REPETITIONS,
+                            DEFAULT_SIGNAL_REPETITIONS,
+                        ),
+                    ): int,
+                    vol.Required(
+                        CONF_DEVICE_TYPE,
+                        default=data.get(
+                            CONF_DEVICE_TYPE, DEFAULT_DEVICE_TYPE
+                        ),
+                    ): vol.In(DEVICE_TYPE_OPTIONS),
+                }
+            ),
+            description_placeholders={
+                "codes_on": codes_on_str,
+                "codes_on_count": str(len(codes_on)),
+                "codes_off": codes_off_str,
+                "codes_off_count": str(len(codes_off)),
+                "protocol": str(data.get(CONF_PROTOCOL, DEFAULT_PROTOCOL)),
+                "pulselength": str(data.get(CONF_PULSELENGTH, "—")),
+            },
         )

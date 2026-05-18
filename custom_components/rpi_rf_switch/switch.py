@@ -15,6 +15,8 @@ from .const import (
     CONF_CODE_LENGTH,
     CONF_CODE_OFF,
     CONF_CODE_ON,
+    CONF_CODES_OFF,
+    CONF_CODES_ON,
     CONF_DEVICE_TYPE,
     CONF_ENTRY_TYPE,
     CONF_NAME,
@@ -77,6 +79,8 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
 
         self._code_on: int = config[CONF_CODE_ON]
         self._code_off: int = config[CONF_CODE_OFF]
+        self._codes_on: set[int] = set(config.get(CONF_CODES_ON, [self._code_on]))
+        self._codes_off: set[int] = set(config.get(CONF_CODES_OFF, [self._code_off]))
         self._protocol: int = config.get(CONF_PROTOCOL, DEFAULT_PROTOCOL)
         self._pulselength: int | None = config.get(CONF_PULSELENGTH)
         self._signal_repetitions: int = config.get(
@@ -119,15 +123,15 @@ class RpiRfSwitch(SwitchEntity, RestoreEntity):
         """Handle received RF code (called from RX thread)."""
         _LOGGER.debug(
             "RX callback for %s: received code=%s (expecting ON=%s OFF=%s), proto=%s, pulse=%s",
-            self._device_name, code, self._code_on, self._code_off, protocol, pulselength,
+            self._device_name, code, self._codes_on, self._codes_off, protocol, pulselength,
         )
-        if code == self._code_on and not self._attr_is_on:
+        if code in self._codes_on and not self._attr_is_on:
             _LOGGER.info(
                 "RX matched ON for %s (code=%s)", self._device_name, code
             )
             self._attr_is_on = True
             self.schedule_update_ha_state()
-        elif code == self._code_off and self._attr_is_on:
+        elif code in self._codes_off and self._attr_is_on:
             _LOGGER.info(
                 "RX matched OFF for %s (code=%s)", self._device_name, code
             )

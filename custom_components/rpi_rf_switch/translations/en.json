@@ -55,11 +55,11 @@
             },
             "learn_on": {
                 "title": "Learn ON Code",
-                "description": "Press the ON button on your remote now. Listening for signals..."
+                "description": "Press the ON button on your remote now. For rotating code remotes (e.g. SilverCrest), press at least 20 times. Listening for signals..."
             },
             "learn_off": {
                 "title": "Learn OFF Code",
-                "description": "Press the OFF button on your remote now. Listening for signals..."
+                "description": "Press the OFF button on your remote now. For rotating code remotes, press at least 20 times. Listening for signals..."
             },
             "learn_on_retry": {
                 "title": "Learn ON Code",
@@ -80,6 +80,14 @@
                     "signal_repetitions": "Signal Repetitions",
                     "device_type": "Device Type"
                 }
+            },
+            "learn_confirm_rotating": {
+                "title": "Rotating Codes Detected",
+                "description": "Rotating codes detected!\n\n{codes_on_count} ON codes: {codes_on}\n{codes_off_count} OFF codes: {codes_off}\n\nProtocol: {protocol}, Pulse Length: {pulselength} µs\n\nAll codes will be stored so every button press is recognized.",
+                "data": {
+                    "signal_repetitions": "Signal Repetitions",
+                    "device_type": "Device Type"
+                }
             }
         },
         "error": {
@@ -93,8 +101,8 @@
             "no_rx_gpio": "No receiver module configured. Please add one first to use learn mode."
         },
         "progress": {
-            "learn_on": "Press the ON button on your remote repeatedly (press, release, press — do not hold it down!).",
-            "learn_off": "Press the OFF button on your remote repeatedly (press, release, press — do not hold it down!)."
+            "learn_on": "Press the ON button on your remote repeatedly (press, release, press — do not hold it down!). For rotating code remotes, press at least 20 times.",
+            "learn_off": "Press the OFF button on your remote repeatedly (press, release, press — do not hold it down!). For rotating code remotes, press at least 20 times."
         }
     },
     "options": {
@@ -134,6 +142,14 @@
                     "pulselength": "Pulse Length (µs)",
                     "signal_repetitions": "Signal Repetitions",
                     "code_length": "Code Length (bits)",
+                    "device_type": "Device Type"
+                }
+            },
+            "rotating_options": {
+                "title": "Edit Rotating Code Device",
+                "description": "Rotating codes:\n\n{codes_on_count} ON codes: {codes_on}\n{codes_off_count} OFF codes: {codes_off}\n\nProtocol: {protocol}, Pulse Length: {pulselength} µs",
+                "data": {
+                    "signal_repetitions": "Signal Repetitions",
                     "device_type": "Device Type"
                 }
             }

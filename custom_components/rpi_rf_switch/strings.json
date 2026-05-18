@@ -55,11 +55,19 @@
       },
       "learn_on": {
         "title": "Learn ON Code",
-        "description": "Press the ON button on your remote repeatedly, then click Submit."
+        "description": "Press the ON button on your remote repeatedly. For rotating code remotes (e.g. SilverCrest), press at least 20 times."
       },
       "learn_off": {
         "title": "Learn OFF Code",
-        "description": "Now press the OFF button on your remote repeatedly, then click Submit."
+        "description": "Now press the OFF button on your remote repeatedly. For rotating code remotes, press at least 20 times."
+      },
+      "learn_confirm_rotating": {
+        "title": "Rotating Codes Detected",
+        "description": "Rotating codes detected!\n\n{codes_on_count} ON codes: {codes_on}\n{codes_off_count} OFF codes: {codes_off}\n\nProtocol: {protocol}, Pulse Length: {pulselength} \u00b5s\n\nAll codes will be stored so every button press is recognized.",
+        "data": {
+          "signal_repetitions": "Signal Repetitions",
+          "device_type": "Device Type"
+        }
       }
     },
     "error": {
@@ -109,6 +117,14 @@
           "pulselength": "Pulse Length (\u00b5s)",
           "signal_repetitions": "Signal Repetitions",
           "code_length": "Code Length (bits)",
+          "device_type": "Device Type"
+        }
+      },
+      "rotating_options": {
+        "title": "Edit Rotating Code Device",
+        "description": "Rotating codes:\n\n{codes_on_count} ON codes: {codes_on}\n{codes_off_count} OFF codes: {codes_off}\n\nProtocol: {protocol}, Pulse Length: {pulselength} \u00b5s",
+        "data": {
+          "signal_repetitions": "Signal Repetitions",
           "device_type": "Device Type"
         }
       }
