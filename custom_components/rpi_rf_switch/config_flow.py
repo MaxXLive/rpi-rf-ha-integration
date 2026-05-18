@@ -16,6 +16,7 @@ from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
     SelectSelectorConfig,
+    SelectSelectorMode,
 )
 
 from .codes import calc_pt2262_code, decode_pt2262_code
@@ -66,6 +67,7 @@ DEVICE_TYPE_SELECTOR = SelectSelector(
     SelectSelectorConfig(
         options=[DEVICE_TYPE_OUTLET, DEVICE_TYPE_LIGHT, DEVICE_TYPE_SWITCH],
         translation_key="device_type",
+        mode=SelectSelectorMode.DROPDOWN,
     )
 )
 
@@ -240,6 +242,7 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         SelectSelectorConfig(
                             options=mode_options,
                             translation_key="mode",
+                            mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
                     vol.Required(
@@ -609,11 +612,9 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         if user_input is not None:
             rotating_mode = user_input.get("rotating_mode", "auto")
             if rotating_mode == "manual":
-                self._rotating_count_on = user_input.get("count_on", 4)
-                self._rotating_count_off = user_input.get("count_off", 4)
-            else:
-                self._rotating_count_on = None
-                self._rotating_count_off = None
+                return await self.async_step_rotating_manual_count()
+            self._rotating_count_on = None
+            self._rotating_count_off = None
             return await self.async_step_rotating_learn_on()
 
         return self.async_show_form(
@@ -624,12 +625,30 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                         SelectSelectorConfig(
                             options=["auto", "manual"],
                             translation_key="rotating_mode",
+                            mode=SelectSelectorMode.DROPDOWN,
                         )
                     ),
-                    vol.Optional("count_on", default=4): vol.All(
+                }
+            ),
+        )
+
+    async def async_step_rotating_manual_count(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Enter manual code counts for rotating codes."""
+        if user_input is not None:
+            self._rotating_count_on = user_input.get("count_on", 4)
+            self._rotating_count_off = user_input.get("count_off", 4)
+            return await self.async_step_rotating_learn_on()
+
+        return self.async_show_form(
+            step_id="rotating_manual_count",
+            data_schema=vol.Schema(
+                {
+                    vol.Required("count_on", default=4): vol.All(
                         int, vol.Range(min=2, max=10)
                     ),
-                    vol.Optional("count_off", default=4): vol.All(
+                    vol.Required("count_off", default=4): vol.All(
                         int, vol.Range(min=2, max=10)
                     ),
                 }

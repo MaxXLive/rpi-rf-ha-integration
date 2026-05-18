@@ -71,9 +71,15 @@
       },
       "rotating_setup": {
         "title": "Rotating Codes — Setup",
-        "description": "Rotating code remotes (e.g. SilverCrest/Lidl) send a different code with each button press, cycling through a fixed set.\n\nChoose how to detect the number of codes. If 'auto' doesn't work reliably, use 'manual' and specify the count.",
+        "description": "Rotating code remotes (e.g. SilverCrest/Lidl) send a different code with each button press, cycling through a fixed set.\n\nChoose how to detect the number of codes.",
         "data": {
-          "rotating_mode": "Detection Mode",
+          "rotating_mode": "Detection Mode"
+        }
+      },
+      "rotating_manual_count": {
+        "title": "Rotating Codes — Manual Count",
+        "description": "Enter the number of different codes your remote sends per button (ON and OFF).",
+        "data": {
           "count_on": "Number of ON codes",
           "count_off": "Number of OFF codes"
         }

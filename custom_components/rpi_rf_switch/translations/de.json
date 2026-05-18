@@ -71,9 +71,15 @@
             },
             "rotating_setup": {
                 "title": "Rotierende Codes — Einrichtung",
-                "description": "Rotating-Code Fernbedienungen (z.B. SilverCrest/Lidl) senden bei jedem Tastendruck einen anderen Code aus einer festen Gruppe.\n\nWähle, wie die Anzahl der Codes erkannt werden soll. Falls 'automatisch' nicht zuverlässig funktioniert, wähle 'manuell' und gib die Anzahl an.",
+                "description": "Rotating-Code Fernbedienungen (z.B. SilverCrest/Lidl) senden bei jedem Tastendruck einen anderen Code aus einer festen Gruppe.\n\nWähle, wie die Anzahl der Codes erkannt werden soll.",
                 "data": {
-                    "rotating_mode": "Erkennungsmodus",
+                    "rotating_mode": "Erkennungsmodus"
+                }
+            },
+            "rotating_manual_count": {
+                "title": "Rotierende Codes — Anzahl",
+                "description": "Gib die Anzahl verschiedener Codes ein, die deine Fernbedienung pro Taste sendet (EIN und AUS).",
+                "data": {
                     "count_on": "Anzahl EIN-Codes",
                     "count_off": "Anzahl AUS-Codes"
                 }
