@@ -200,6 +200,12 @@
                 "light": "Light",
                 "switch": "Switch"
             }
+        },
+        "rotating_mode": {
+            "options": {
+                "auto": "Auto-detect count",
+                "manual": "Manual count"
+            }
         }
     }
 }

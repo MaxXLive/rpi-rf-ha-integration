@@ -620,11 +620,11 @@ class RpiRfSwitchConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="rotating_setup",
             data_schema=vol.Schema(
                 {
-                    vol.Required("rotating_mode", default="auto"): vol.In(
-                        {
-                            "auto": "Anzahl automatisch erkennen",
-                            "manual": "Anzahl manuell festlegen",
-                        }
+                    vol.Required("rotating_mode", default="auto"): SelectSelector(
+                        SelectSelectorConfig(
+                            options=["auto", "manual"],
+                            translation_key="rotating_mode",
+                        )
                     ),
                     vol.Optional("count_on", default=4): vol.All(
                         int, vol.Range(min=2, max=10)

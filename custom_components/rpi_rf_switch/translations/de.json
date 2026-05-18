@@ -200,6 +200,12 @@
                 "light": "Licht",
                 "switch": "Schalter"
             }
+        },
+        "rotating_mode": {
+            "options": {
+                "auto": "Anzahl automatisch erkennen",
+                "manual": "Anzahl manuell festlegen"
+            }
         }
     }
 }
